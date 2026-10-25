@@ -1,0 +1,10 @@
+{
+  "name": "PunchPulse",
+  "short_name": "PunchPulse",
+  "description": "A neon VR punch workout.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#05060f",
+  "theme_color": "#05060f",
+  "icons": []
+}
