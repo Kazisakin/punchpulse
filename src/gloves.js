@@ -3,30 +3,55 @@
 // Also provides a mouse-driven "desktop glove" for testing without a headset.
 import * as THREE from 'three';
 import { COLORS } from './config.js';
+import { addRimGlow, glowSprite } from './gfx.js';
 
-function makeGlove(color) {
+// Glossy boxing glove: padded fist, knuckle bulge, thumb, cuff with a white band,
+// lit leather look + neon rim glow + soft halo.
+function makeGlove(color, hand = 'right') {
   const group = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.7, roughness: 0.4 });
+  const mat = addRimGlow(
+    new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.08, roughness: 0.32, metalness: 0.0, envMapIntensity: 0.55 }),
+    color, 0.75, 2.6
+  );
+  const trim = new THREE.MeshStandardMaterial({ color: 0xe8ecff, roughness: 0.45, envMapIntensity: 0.4 });
 
-  const fist = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 12), mat);
-  fist.scale.set(1, 0.85, 1.25);
-  fist.position.z = -0.05;
+  // big rounded padded fist (the striking surface faces -z)
+  const fist = new THREE.Mesh(new THREE.SphereGeometry(0.068, 28, 20), mat);
+  fist.scale.set(1.0, 1.08, 1.12);
+  fist.position.set(0, 0.008, -0.075);
   group.add(fist);
 
-  const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.07, 16), mat);
+  // finger roll: a padded bulge over the knuckles
+  const roll = new THREE.Mesh(new THREE.CapsuleGeometry(0.036, 0.06, 8, 16), mat);
+  roll.rotation.z = Math.PI / 2;
+  roll.position.set(0, 0.03, -0.112);
+  group.add(roll);
+
+  // thumb tucked along the side
+  const thumbSide = hand === 'left' ? 1 : -1;
+  const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.019, 0.045, 6, 12), mat);
+  thumb.rotation.set(Math.PI / 2.3, 0, thumbSide * 0.35);
+  thumb.position.set(thumbSide * 0.058, -0.008, -0.08);
+  group.add(thumb);
+
+  // short tapered wrist cuff + white band
+  const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.058, 0.06, 28), mat);
   cuff.rotation.x = Math.PI / 2;
-  cuff.position.z = 0.04;
+  cuff.position.z = 0.0;
   group.add(cuff);
 
-  const halo = new THREE.Mesh(
-    new THREE.SphereGeometry(0.1, 12, 8),
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.18, depthWrite: false })
-  );
-  halo.position.z = -0.05;
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.0565, 0.0585, 0.014, 28, 1, true), trim);
+  band.rotation.x = Math.PI / 2;
+  band.position.z = 0.012;
+  group.add(band);
+
+  const halo = glowSprite(color, 0.3, 0.3);
+  halo.position.z = -0.07;
   group.add(halo);
 
   group.userData.mat = mat;
   group.userData.halo = halo;
+  group.userData.haloBase = 0.3;
   return group;
 }
 
@@ -63,7 +88,7 @@ export function createGloves(renderer, scene) {
       state.hand = e.data.handedness === 'left' ? 'left' : 'right';
       state.gamepad = e.data.gamepad || null;
       if (!state.glove) {
-        state.glove = makeGlove(COLORS[state.hand]);
+        state.glove = makeGlove(COLORS[state.hand], state.hand);
         grip.add(state.glove);
       }
       state.active = true;
@@ -82,7 +107,7 @@ export function createGloves(renderer, scene) {
 
   // ---------- Desktop glove (mouse) ----------
   const desktop = {
-    hand: 'any', glove: makeGlove(0xffffff), active: false,
+    hand: 'any', glove: makeGlove(COLORS.accent), active: false,
     pos: new THREE.Vector3(), prevPos: new THREE.Vector3(), velocity: new THREE.Vector3(),
     speed: 0, flash: 0, isDesktop: true,
     reach: 0.27,  // bigger hit area: aiming with a mouse is harder than with your fist
@@ -122,8 +147,9 @@ export function createGloves(renderer, scene) {
   function flashFade(h, dt) {
     if (!h.glove || h.flash <= 0) return;
     h.flash = Math.max(0, h.flash - dt * 4);
-    h.glove.userData.mat.emissiveIntensity = 0.7 + h.flash * 2.5;
-    h.glove.userData.halo.scale.setScalar(1 + h.flash * 0.8);
+    h.glove.userData.mat.emissiveIntensity = 0.08 + h.flash * 1.4;
+    h.glove.userData.halo.scale.setScalar(h.glove.userData.haloBase * (1 + h.flash * 1.2));
+    h.glove.userData.halo.material.opacity = 0.3 + h.flash * 0.5;
   }
 
   // All gloves that can currently punch

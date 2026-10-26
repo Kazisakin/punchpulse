@@ -10,12 +10,12 @@ import { generateChart } from './chart.js';
 import { Storage } from './storage.js';
 import { IAP } from './iap.js';
 import { Panel, Button, gloveTouchesButton, roundRect, text } from './ui.js';
+import { RoomEnvironment } from '../vendor/RoomEnvironment.js';
 
 // =====================================================================
 // Scene, camera, renderer
 // =====================================================================
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(COLORS.bg);
 
 const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 100);
 camera.position.set(0, 1.6, 0);
@@ -34,6 +34,13 @@ const gloves = createGloves(renderer, scene);
 const targets = new TargetManager(scene);
 const fx = new Effects(scene);
 const audio = new AudioEngine();
+
+// Soft studio reflections for the glossy gloves (generated once, cheap at runtime)
+{
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  pmrem.dispose();
+}
 
 // =====================================================================
 // UI (follows the player's head height)
@@ -261,11 +268,13 @@ function updatePlaying(dt) {
     g.maxCombo = Math.max(g.maxCombo, g.combo);
     g.hits++; g.punches++;
     const mult = 1 + Math.min(3, Math.floor(g.combo / 10));
-    const onBeat = h.timing < 0.3 ? 50 : 0;
+    const grade = h.timing < 0.15 ? 'PERFECT' : h.timing < 0.35 ? 'GREAT' : 'GOOD';
+    const onBeat = grade === 'PERFECT' ? 50 : grade === 'GREAT' ? 25 : 0;
     const power = Math.min(50, Math.round(h.speed * 10));
     g.score += (100 + onBeat + power) * mult;
     g.kcal += 0.07;
-    fx.burst(h.pos, COLORS[h.hand], Math.min(1.4, 0.6 + h.speed / 5));
+    fx.burst(h.pos, COLORS[h.hand], Math.min(1.4, 0.6 + h.speed / 5) * (grade === 'PERFECT' ? 1.25 : 1));
+    fx.popup(grade, h.pos);
     audio.sfxHit(Math.min(1.3, 0.6 + h.speed / 5));
     gloves.buzz(h.glove, 0.8, 50);
     hudDirty = true;
@@ -273,6 +282,7 @@ function updatePlaying(dt) {
   for (const w of res.wrong) {
     g.combo = 0; g.wrong++; g.punches++;
     fx.burst(w.pos, 0x888888, 0.5);
+    fx.popup('WRONG', w.pos);
     audio.sfxMiss();
     gloves.buzz(w.glove, 0.2, 30);
     hudDirty = true;
@@ -460,6 +470,7 @@ deskBtn.addEventListener('click', () => { audio.unlock(); overlay.classList.add(
   if (xrOk) {
     vrBtn.disabled = false;
     vrBtn.textContent = 'ENTER VR';
+    deskBtn.style.display = 'none'; // on a headset, the mouse preview isn't needed
     // Installed as a Quest app (PWA): jump straight into VR, the app icon tap counts as the user gesture
     if (window.getDigitalGoodsService !== undefined) startXR();
   } else {
@@ -492,12 +503,15 @@ renderer.setAnimationLoop(() => {
   fx.update(dt);
 
   // Arena pulses on the beat while playing
-  let pulse;
+  let pulse, phase;
   if (state === 'playing') {
-    const phase = (audio.songTime / audio.secondsPerBeat) % 1;
+    phase = (audio.songTime / audio.secondsPerBeat) % 1;
     pulse = Math.exp(-phase * 5);
-  } else pulse = 0.35 + 0.15 * Math.sin(clock.elapsedTime * 2);
-  arena.update(clock.elapsedTime, pulse, dt);
+  } else {
+    phase = (clock.elapsedTime * 0.5) % 1;
+    pulse = 0.35 + 0.15 * Math.sin(clock.elapsedTime * 2);
+  }
+  arena.update(clock.elapsedTime, pulse, dt, phase, state === 'playing' ? audio.spectrum() : null);
 
   hudTimer += dt;
   if (hud.mesh.visible && (hudDirty || hudTimer > 0.25)) { drawHud(); hudDirty = false; hudTimer = 0; }
@@ -523,4 +537,4 @@ if ('serviceWorker' in navigator) {
 }
 
 // Exposed for debugging in DevTools
-window.punchpulse = { state: () => state, g, sel, startCountdown, pauseGame, resumeGame, endGame, audio, IAP, targets, camera };
+window.punchpulse = { state: () => state, g, sel, startCountdown, pauseGame, resumeGame, endGame, audio, IAP, targets, camera, renderer, gloves, scene };

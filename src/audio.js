@@ -58,6 +58,13 @@ export class AudioEngine {
       this.musicBus = this.ctx.createGain();
       this.musicBus.gain.value = 0.55;
       this.musicBus.connect(this.master);
+
+      // Analyser drives the music-reactive equalizer bars
+      this.analyser = this.ctx.createAnalyser();
+      this.analyser.fftSize = 128;
+      this.analyser.smoothingTimeConstant = 0.6;
+      this.musicBus.connect(this.analyser);
+      this.spectrumData = new Uint8Array(this.analyser.frequencyBinCount);
       this.sfxBus = this.ctx.createGain();
       this.sfxBus.gain.value = 0.9;
       this.sfxBus.connect(this.master);
@@ -77,6 +84,13 @@ export class AudioEngine {
   get songTime() { return this.playing ? this.ctx.currentTime - this.startTime : 0; }
 
   get secondsPerBeat() { return this.track ? 60 / this.track.bpm : 0.5; }
+
+  // Current music frequency levels (0..255 per bin), or null when silent
+  spectrum() {
+    if (!this.analyser || !this.playing) return null;
+    this.analyser.getByteFrequencyData(this.spectrumData);
+    return this.spectrumData;
+  }
 
   start(track, delay = 0.1) {
     this.unlock();
