@@ -2,29 +2,36 @@
 const params = new URLSearchParams(location.search);
 
 export const CONFIG = {
-  // In-app purchase SKU (must match the SKU you create in the Meta Developer Dashboard)
+  // In-app purchase SKU (must match the SKU in the Meta Developer Dashboard)
   PRO_SKU: 'punchpulse_pro',
 
   // ?dev=1 unlocks Pro content when testing in a normal browser
   DEV_UNLOCK: params.has('dev'),
-
   // ?test=1 lets any glove movement count as a punch (easier in the emulator)
   TEST_MODE: params.has('test'),
 
-  // Punch must be at least this fast (metres/second) to count
+  // Minimum punch speed (metres/second). Hand tracking is a little smoother/slower
+  // than controller tracking, so it gets a slightly lower threshold.
   MIN_PUNCH_SPEED: 1.2,
+  HAND_MIN_PUNCH_SPEED: 0.95,
   DESKTOP_MIN_PUNCH_SPEED: 0.6,
+  // Uppercuts must travel upward at least this fast
+  UPPERCUT_MIN_UP_SPEED: 0.7,
+  // Buttons only press when the fist/finger moves forward (stops accidental presses)
+  BUTTON_PRESS_MIN_FORWARD: 0.25,
 
   // Targets
   TARGET_RADIUS: 0.13,
-  HIT_RADIUS: 0.2,         // target radius + glove reach tolerance
-  TARGET_SPEED: 7,         // metres/second toward player
-  SPAWN_DISTANCE: 14,      // metres in front of hit plane
+  HIT_RADIUS: 0.2,
+  SPAWN_DISTANCE: 14,      // metres in front of the hit plane
   HIT_PLANE_Z: -0.55,      // where targets are on the beat (arm's length)
   MISS_Z: 0.25,            // passed the player = miss
-  LANE_HALF_WIDTH: 0.22,   // left/right offset from centre
+  LANE_HALF_WIDTH: 0.22,
+  // Dodge walls are judged when they reach the player's head
+  WALL_JUDGE_Z: 0.0,
+  DUCK_DEPTH: 0.22,        // head must drop this far below standing height
+  LEAN_DISTANCE: 0.17,     // head must move this far sideways
 
-  // Workouts (minutes). `pro: true` needs the Pro unlock.
   DURATIONS: [
     { minutes: 3, pro: false },
     { minutes: 5, pro: false },
@@ -32,11 +39,30 @@ export const CONFIG = {
   ],
 };
 
+// speed: m/s toward player · density: how busy the chart is · specials: chance per beat
+// for uppercut / block / wall · hitBonus: extra hit radius (forgiveness)
+export const DIFFICULTIES = [
+  { id: 'easy',   name: 'EASY',   pro: false, speed: 5.5, density: 0.55, doubles: 0.0,  upper: 0.06, block: 0.03, wall: 0.035, hitBonus: 0.05 },
+  { id: 'normal', name: 'NORMAL', pro: false, speed: 7.0, density: 0.8,  doubles: 0.25, upper: 0.10, block: 0.05, wall: 0.06,  hitBonus: 0.02 },
+  { id: 'hard',   name: 'HARD',   pro: false, speed: 8.5, density: 0.95, doubles: 0.45, upper: 0.14, block: 0.06, wall: 0.08,  hitBonus: 0.0 },
+  { id: 'expert', name: 'EXPERT', pro: true,  speed: 10,  density: 1.0,  doubles: 0.7,  upper: 0.17, block: 0.07, wall: 0.1,   hitBonus: -0.02 },
+];
+export const difficultyById = (id) => DIFFICULTIES.find((d) => d.id === id) || DIFFICULTIES[1];
+
+export const THEMES = [
+  { id: 'synthwave', name: 'SYNTHWAVE', pro: false },
+  { id: 'ocean',     name: 'OCEAN',     pro: true },
+  { id: 'space',     name: 'DEEP SPACE', pro: true },
+];
+
 export const COLORS = {
   left: 0xff3b5c,
   right: 0x4da3ff,
   accent: 0x00e5ff,
   magenta: 0xff2bd6,
+  block: 0xb98cff,
+  wall: 0xffa52b,
+  gold: 0xffd23d,
   bg: 0x05060f,
 };
 
@@ -45,6 +71,10 @@ export const CSS = {
   right: '#4da3ff',
   accent: '#00e5ff',
   magenta: '#ff2bd6',
+  green: '#3dff9a',
+  gold: '#ffd23d',
+  orange: '#ffa52b',
+  violet: '#b98cff',
   text: '#eaf2ff',
   dim: '#7f8db3',
   panel: 'rgba(8,12,30,0.88)',

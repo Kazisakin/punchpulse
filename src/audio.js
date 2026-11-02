@@ -28,8 +28,40 @@ export const TRACKS = [
     snare: '....x.......x..x',
     hat:   'xxxxxxxxxxxxxxxx',
     bass:  [0, 12, 0, 7, 0, 8, 7, 5],
+    lead: 'sawtooth',
+  },
+  {
+    id: 'chill', name: 'Chill Circuit', bpm: 96, pro: false,
+    root: 43, // G2
+    scale: [0, 2, 4, 7, 9],
+    kick:  'x.....x...x.....',
+    snare: '....x.......x...',
+    hat:   '..x...x...x...xx',
+    bass:  [0, 0, 4, 4, 9, 9, 7, 7],
+    lead: 'triangle', pad: true,
+  },
+  {
+    id: 'sunset', name: 'Sunset Sprint', bpm: 128, pro: true,
+    root: 41, // F2
+    scale: [0, 3, 5, 7, 10],
+    kick:  'x...x...x...x...',
+    snare: '....x.......x...',
+    hat:   '..x.x.x...x.x.xx',
+    bass:  [0, 12, 0, 12, 3, 15, 5, 17],
+    lead: 'square', pad: true,
+  },
+  {
+    id: 'thunder', name: 'Thunderstrike', bpm: 150, pro: true,
+    root: 36, // C2
+    scale: [0, 1, 3, 7, 8],
+    kick:  'x.x.x..xx.x.x..x',
+    snare: '....x.......x.xx',
+    hat:   'xxxxxxxxxxxxxxxx',
+    bass:  [0, 0, 12, 0, 1, 1, 13, 7],
+    lead: 'sawtooth',
   },
 ];
+export const trackById = (id) => TRACKS.find((t) => t.id === id) || TRACKS[0];
 
 const midiToHz = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
@@ -128,7 +160,12 @@ export class AudioEngine {
     const s = step % 16;
     const bar = Math.floor(step / 16);
     const intro = bar < 2;
-    if (tr.kick[s] === 'x') this.kick(t);
+    const breakdown = bar % 16 === 15;               // a calmer bar every 16 for musical variety
+    if (!breakdown && tr.kick[s] === 'x') this.kick(t);
+    if (tr.pad && s === 0) {
+      const chord = [0, 2, 4].map((k) => tr.scale[(k + Math.floor(bar / 2)) % tr.scale.length]);
+      chord.forEach((n) => this.pad(t, midiToHz(tr.root + 24 + n), stepDur * 15));
+    }
     if (!intro && tr.snare[s] === 'x') this.snare(t);
     if (tr.hat[s] === 'x') this.hat(t, s % 4 === 2 ? 0.16 : 0.09);
     if (!intro && s % 2 === 0) {
@@ -140,7 +177,7 @@ export class AudioEngine {
       const phrase = Math.floor(bar / 4) % 3;
       const idx = (s + phrase * 3 + bar) % tr.scale.length;
       const octave = (s % 8 === 7) ? 24 : 12;
-      this.lead(t, midiToHz(tr.root + 12 + tr.scale[idx] + octave), stepDur * 0.9);
+      this.lead(t, midiToHz(tr.root + 12 + tr.scale[idx] + octave), stepDur * 0.9, tr.lead);
     }
   }
 
@@ -195,10 +232,23 @@ export class AudioEngine {
     o.start(t); o.stop(t + dur + 0.02);
   }
 
-  lead(t, hz, dur) {
+  pad(t, hz, dur) {
+    const o = this.ctx.createOscillator();
+    const f = this.ctx.createBiquadFilter();
+    const g = this.ctx.createGain();
+    o.type = 'sawtooth'; o.frequency.value = hz; o.detune.value = (Math.random() - 0.5) * 14;
+    f.type = 'lowpass'; f.frequency.value = 1100;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.035, t + dur * 0.3);
+    g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    o.connect(f).connect(g).connect(this.musicBus);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+
+  lead(t, hz, dur, type = 'square') {
     const o = this.ctx.createOscillator();
     const g = this.ctx.createGain();
-    o.type = 'square'; o.frequency.value = hz;
+    o.type = type; o.frequency.value = hz;
     g.gain.setValueAtTime(0.045, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + dur);
     o.connect(g).connect(this.musicBus);
@@ -236,6 +286,26 @@ export class AudioEngine {
   }
 
   sfxClick() { this.beep(880, 0.06, 0.2); }
+
+  sfxDodge() { this.beep(660, 0.08, 0.18); setTimeout(() => this.beep(990, 0.1, 0.16), 70); }
+
+  sfxBlock() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this._noise(t, 0.2, 'bandpass', 600, 0.6, this.sfxBus);
+    this.beep(220, 0.18, 0.25);
+  }
+
+  sfxOuch() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this._noise(t, 0.25, 'lowpass', 400, 0.7, this.sfxBus);
+    this.beep(110, 0.25, 0.3);
+  }
+
+  sfxAchievement() {
+    [784, 988, 1175, 1568].forEach((hz, i) => setTimeout(() => this.beep(hz, 0.18, 0.18), i * 90));
+  }
 
   beep(hz, dur = 0.12, vol = 0.25) {
     if (!this.ctx) return;

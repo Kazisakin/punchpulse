@@ -41,6 +41,13 @@ export function roundRect(c, x, y, w, h, r) {
   c.closePath();
 }
 
+// Like text(), but shrinks the font so the string never exceeds maxW pixels
+export function fitText(c, str, x, y, size, maxW, color = CSS.text, weight = 700, align = 'center') {
+  c.font = `${weight} ${size}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+  const w = c.measureText(str).width;
+  text(c, str, x, y, w > maxW ? size * (maxW / w) : size, color, weight, align);
+}
+
 export function text(c, str, x, y, size, color = CSS.text, weight = 700, align = 'center') {
   c.font = `${weight} ${size}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
   c.fillStyle = color;
@@ -119,9 +126,9 @@ export class Button extends Panel {
 
 // Utility to check whether a glove is touching a button (punch-to-press)
 const local = new THREE.Vector3();
-export function gloveTouchesButton(glove, button) {
+export function gloveTouchesButton(glove, button, depth = 0.07) {
   if (!button.mesh.visible || !button.enabled) return false;
   local.copy(glove.pos);
   button.mesh.worldToLocal(local);
-  return Math.abs(local.x) < button.w / 2 && Math.abs(local.y) < button.h / 2 && Math.abs(local.z) < 0.07;
+  return Math.abs(local.x) < button.w / 2 && Math.abs(local.y) < button.h / 2 && Math.abs(local.z) < depth;
 }

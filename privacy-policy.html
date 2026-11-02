@@ -20,7 +20,7 @@
 <body>
 <main>
   <h1>PunchPulse Privacy Policy</h1>
-  <p class="muted">Effective date: October 28, 2026</p>
+  <p class="muted">Effective date: October 29, 2026</p>
 
   <p>PunchPulse ("the app", "we", "us") is a virtual reality workout game for Meta Quest, developed by Kazi Mostofa Sakin, Fredericton, New Brunswick, Canada. This policy explains what data the app collects, processes and stores, why, who it is shared with, how long it is kept, and how you can ask for it to be deleted.</p>
 
@@ -30,7 +30,8 @@
       <li>PunchPulse has no accounts, no advertising and no analytics or tracking tools.</li>
       <li>To sell and verify the optional "PunchPulse Pro" in-app purchase, the app uses Meta's in-app purchase service, which processes your purchase information.</li>
       <li>Game progress (high scores, workout stats and whether Pro is unlocked) is stored only on your headset.</li>
-      <li>Headset and controller movement is processed in real time to detect punches and is never stored or sent anywhere.</li>
+      <li>Headset, controller and hand-tracking movement is processed in real time to detect punches, blocks and dodges, and is never stored or sent anywhere.</li>
+      <li>In Mixed Reality mode your surroundings are shown by the headset itself; the app never receives camera images.</li>
       <li>You can delete your data at any time, as described in section 7.</li>
     </ul>
   </div>
@@ -49,14 +50,14 @@
       <td>To confirm the app was obtained legitimately, as required by Meta. We do not store this identifier.</td>
     </tr>
     <tr>
-      <td><b>Game progress</b>: high scores, number of workouts, estimated calories, total punches, and whether Pro is unlocked</td>
+      <td><b>Game progress and settings</b>: high scores, workout history (calories and minutes per day), streaks, program progress, achievements, settings, and whether Pro is unlocked</td>
       <td>Created by the app while you play</td>
       <td>To show your best scores and stats, and to keep Pro unlocked when you are offline. Stored only on your headset.</td>
     </tr>
     <tr>
-      <td><b>Headset and controller position and motion</b></td>
-      <td>Read from the headset sensors while you play</td>
-      <td>Processed in real time to detect punches and draw your gloves. Never stored and never transmitted.</td>
+      <td><b>Headset, controller and hand-tracking data</b>: the position and movement of your head, controllers and, if you play with your hands, the positions of your hand joints</td>
+      <td>Read from the headset sensors through the WebXR API while you play</td>
+      <td>Processed in real time to detect punches, uppercuts, blocks and dodges and to draw your gloves. Never stored and never transmitted.</td>
     </tr>
     <tr>
       <td><b>Technical request data</b>: IP address, browser/device type, and the time of the request</td>
@@ -64,7 +65,7 @@
       <td>Used by GitHub only to deliver the files and keep its service secure. We do not receive or store these logs.</td>
     </tr>
   </table>
-  <p>The app does not collect your name, email address, contacts, precise location, voice, camera images, friends list or profile photo.</p>
+  <p>The app does not collect your name, email address, contacts, precise location, voice, camera images, images of your room, friends list or profile photo.</p>
 
   <h2>3. Legal basis and purposes</h2>
   <p>We process purchase and ownership data to provide the product you requested (performance of a contract) and to meet Meta's platform requirements. Game progress and motion data are processed only to make the game work. We never sell your data or use it for advertising or profiling.</p>
@@ -78,7 +79,7 @@
 
   <h2>5. Where data is stored and for how long</h2>
   <ul>
-    <li><b>Game progress</b> stays on your headset until you clear the app's data or uninstall the app.</li>
+    <li><b>Game progress and settings</b> stay on your headset until you clear the app's data or uninstall the app. Daily workout history older than 90 days is deleted automatically.</li>
     <li><b>Purchase records</b> are kept by Meta according to Meta's policies, so that your purchase can be restored. We do not keep our own copy of purchase records on any server.</li>
     <li><b>Motion data</b> is not retained at all.</li>
   </ul>

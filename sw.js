@@ -1,6 +1,6 @@
 // Offline support: caches the whole app on first load.
 // Bump VERSION whenever you publish an update so players get the new files.
-const VERSION = 'punchpulse-v1.1.0';
+const VERSION = 'punchpulse-v1.2.0';
 const FILES = [
   './',
   './index.html',
@@ -21,6 +21,7 @@ const FILES = [
   './src/storage.js',
   './src/iap.js',
   './src/gfx.js',
+  './src/progression.js',
 ];
 
 self.addEventListener('install', (e) => {

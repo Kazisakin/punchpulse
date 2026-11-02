@@ -9,30 +9,34 @@ PunchPulse
 Punch neon targets to the beat in a quick, sweaty rhythm workout.
 
 ## Full description
-Step into a glowing neon arena and punch your way through a rhythm workout.
+Step into a glowing neon arena and punch your way through a rhythm workout, using controllers or just your hands.
 
-Red targets are for your left hand and blue targets are for your right. Hit them on the beat, keep your combo alive and watch your score multiply. The pace builds as the music builds. It's easy to start and hard to master.
+Red targets are for your left fist and blue targets are for your right. Swing up through arrow targets for uppercuts, raise both fists to block, and duck or lean to dodge incoming walls. Hit everything on the beat to build combos and climb the grades.
 
 FEATURES
-• 3- and 5-minute workouts that fit any break
-• Built-in electronic soundtrack, with targets locked to the beat
-• Combo multipliers, power bonuses and on-beat bonuses
-• Estimated calories burned and lifetime workout stats
-• Personal best score for every song and workout length
-• Works fully offline, with no account and no ads
+• Hands-first: play the whole game with hand tracking, or with controllers
+• Mixed Reality mode: targets fly into your own room
+• Seated mode, so you can work out from a chair
+• Daily challenge and workout streaks
+• Guided programs, 15 achievements, and weekly calorie stats
+• 4 difficulty levels and 3 free songs with a built-in electronic soundtrack
+• Quick 3 and 5 minute workouts, plus a 1-minute tutorial
+• Works offline, with no account and no ads
 
-PUNCHPULSE PRO (in-app purchase)
-• 10-minute workouts
-• Overdrive: a fast 140 BPM track for experienced players
+PUNCHPULSE PRO (one-time in-app purchase)
+• 10-minute workouts and Expert difficulty
+• 3 extra songs: Overdrive, Sunset Sprint and Thunderstrike
+• Cardio Blast and Fight Camp programs
+• Ocean and Deep Space arena themes
 
-Play standing, in a clear space, with your wrist straps on.
+Play in a clear space. If you use controllers, wear the wrist straps.
 
 ## Category / genre
 Fitness · Rhythm · Action
 
 ## Play settings to select
-- Play mode: **Standing**
-- Supported input: **Touch controllers** (no hand tracking)
+- Play mode: **Standing** and **Sitting**
+- Supported input: **Touch controllers** and **Hands**
 - Player modes: **Single user**
 - Comfort: **Comfortable** (no artificial movement)
 
@@ -40,10 +44,10 @@ Fitness · Rhythm · Action
 - App price: **Free**
 - In-app purchase: SKU `punchpulse_pro`, type **Durable**, suggested price **$4.99 USD**
   - Name: PunchPulse Pro
-  - Description: Unlocks 10-minute workouts and the Overdrive track.
+  - Description: Unlocks 10-minute workouts, Expert difficulty, 3 extra songs, 2 extra programs and 2 arena themes.
 
 ## Privacy policy URL
-https://<your-github-username>.github.io/punchpulse/privacy.html
+https://kazisakin.github.io/punchpulse/privacy-policy.html
 (Contact email in privacy.html: kazi.sakin@icloud.com)
 
 ## Art files (in this folder)

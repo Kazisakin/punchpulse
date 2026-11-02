@@ -80,6 +80,10 @@ export class Effects {
       GOOD: popupTexture('GOOD', '#4da3ff'),
       MISS: popupTexture('MISS', '#ff3b5c'),
       WRONG: popupTexture('WRONG HAND', '#ff8a3d'),
+      BLOCK: popupTexture('BLOCKED!', '#b98cff'),
+      DODGE: popupTexture('DODGE!', '#ffa52b'),
+      OUCH: popupTexture('OUCH!', '#ff3b5c'),
+      UPPER: popupTexture('UPPERCUT!', '#ffd23d'),
     };
     this.popups = [];
     for (let i = 0; i < POPUPS; i++) {
