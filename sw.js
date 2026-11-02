@@ -1,6 +1,6 @@
 // Offline support: caches the whole app on first load.
 // Bump VERSION whenever you publish an update so players get the new files.
-const VERSION = 'punchpulse-v1.2.0';
+const VERSION = 'punchpulse-v1.3.0';
 const FILES = [
   './',
   './index.html',

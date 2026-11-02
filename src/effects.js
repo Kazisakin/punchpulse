@@ -12,7 +12,7 @@ function popupTexture(text, color) {
   const c = document.createElement('canvas');
   c.width = 512; c.height = 160;
   const g = c.getContext('2d');
-  g.font = '900 96px system-ui, Segoe UI, Roboto, sans-serif';
+  g.font = '900 96px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.shadowColor = color; g.shadowBlur = 28;
   g.fillStyle = color;

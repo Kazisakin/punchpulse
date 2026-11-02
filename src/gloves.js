@@ -5,53 +5,73 @@ import * as THREE from 'three';
 import { COLORS } from './config.js';
 import { addRimGlow, glowSprite } from './gfx.js';
 
-// Glossy boxing glove: padded fist, knuckle bulge, thumb, cuff with a white band,
-// lit leather look + neon rim glow + soft halo.
+// Glossy boxing glove, built in "glove space":
+//   -Z = knuckles / striking face, +Y = back of the hand, cuff at the origin (wrist).
+// The right glove's thumb is on -X, the left glove's on +X.
 function makeGlove(color, hand = 'right') {
   const group = new THREE.Group();
+  const body = new THREE.Group();          // everything except the halo (squashed on impact)
+  group.add(body);
   const mat = addRimGlow(
-    new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.08, roughness: 0.32, metalness: 0.0, envMapIntensity: 0.55 }),
+    new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.08, roughness: 0.3, metalness: 0.0, envMapIntensity: 0.6 }),
     color, 0.75, 2.6
   );
-  const trim = new THREE.MeshStandardMaterial({ color: 0xe8ecff, roughness: 0.45, envMapIntensity: 0.4 });
+  const trim = new THREE.MeshStandardMaterial({ color: 0xf2f4ff, roughness: 0.4, envMapIntensity: 0.5 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x14182c, roughness: 0.6, side: THREE.DoubleSide });
 
-  // big rounded padded fist (the striking surface faces -z)
-  const fist = new THREE.Mesh(new THREE.SphereGeometry(0.068, 28, 20), mat);
-  fist.scale.set(1.0, 1.08, 1.12);
-  fist.position.set(0, 0.008, -0.075);
-  group.add(fist);
+  // main padded fist: a rounded block, deeper than it is wide, slightly flattened top-to-bottom
+  const fist = new THREE.Mesh(new THREE.SphereGeometry(0.07, 32, 22), mat);
+  fist.scale.set(1.0, 0.92, 1.22);
+  fist.position.set(0, 0.0, -0.085);
+  body.add(fist);
 
-  // finger roll: a padded bulge over the knuckles
-  const roll = new THREE.Mesh(new THREE.CapsuleGeometry(0.036, 0.06, 8, 16), mat);
-  roll.rotation.z = Math.PI / 2;
-  roll.position.set(0, 0.03, -0.112);
-  group.add(roll);
+  // knuckle pad: fuller striking face
+  const pad = new THREE.Mesh(new THREE.SphereGeometry(0.058, 28, 18), mat);
+  pad.scale.set(1.08, 0.9, 0.7);
+  pad.position.set(0, 0.012, -0.135);
+  body.add(pad);
 
-  // thumb tucked along the side
+  // white stripe across the back of the hand
+  const stripe = new THREE.Mesh(new THREE.CapsuleGeometry(0.009, 0.07, 4, 10), trim);
+  stripe.rotation.z = Math.PI / 2;
+  stripe.position.set(0, 0.062, -0.09);
+  body.add(stripe);
+
+  // thumb tucked along the inner side, pointing forward
   const thumbSide = hand === 'left' ? 1 : -1;
-  const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.019, 0.045, 6, 12), mat);
-  thumb.rotation.set(Math.PI / 2.3, 0, thumbSide * 0.35);
-  thumb.position.set(thumbSide * 0.058, -0.008, -0.08);
-  group.add(thumb);
+  const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.021, 0.05, 6, 12), mat);
+  thumb.rotation.set(Math.PI / 2, 0, 0);
+  thumb.rotation.y = thumbSide * 0.25;
+  thumb.position.set(thumbSide * 0.062, -0.018, -0.088);
+  body.add(thumb);
 
-  // short tapered wrist cuff + white band
-  const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.058, 0.06, 28), mat);
-  cuff.rotation.x = Math.PI / 2;
-  cuff.position.z = 0.0;
-  group.add(cuff);
-
-  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.0565, 0.0585, 0.014, 28, 1, true), trim);
+  // cuff: open tube that narrows toward the wrist, white band, dark padded opening + lace strip
+  const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.044, 0.056, 0.08, 28, 1, true), mat);
+  cuff.rotation.x = Math.PI / 2;            // cylinder +Y -> glove +Z (toward the elbow)
+  cuff.position.z = -0.005;
+  body.add(cuff);
+  const lining = new THREE.Mesh(new THREE.CircleGeometry(0.044, 28), dark);
+  lining.position.z = 0.034;                 // the opening you see when you look down your arm
+  body.add(lining);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.044, 0.006, 8, 28), trim);
+  rim.position.z = 0.035;
+  body.add(rim);
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.0545, 0.0565, 0.016, 28, 1, true), trim);
   band.rotation.x = Math.PI / 2;
-  band.position.z = 0.012;
-  group.add(band);
+  band.position.z = -0.036;
+  body.add(band);
+  const lace = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.006, 0.06), dark);
+  lace.position.set(0, -0.049, 0.0);
+  body.add(lace);
 
-  const halo = glowSprite(color, 0.3, 0.3);
-  halo.position.z = -0.07;
+  const halo = glowSprite(color, 0.32, 0.3);
+  halo.position.z = -0.09;
   group.add(halo);
 
   group.userData.mat = mat;
+  group.userData.body = body;
   group.userData.halo = halo;
-  group.userData.haloBase = 0.3;
+  group.userData.haloBase = 0.32;
   return group;
 }
 
@@ -92,8 +112,8 @@ export function createGloves(renderer, scene) {
     state.hand = source.handedness === 'left' ? 'left' : 'right';
     state.gamepad = state.kind === 'controller' ? source.gamepad || null : null;
     state.glove = makeGlove(COLORS[state.hand], state.hand);
-    if (state.kind === 'controller') state.grip.add(state.glove);
-    else { state.glove.visible = false; scene.add(state.glove); }
+    state.glove.visible = false;
+    scene.add(state.glove);
     state.active = true;
     state.settle = 3;
     hands[state.hand] = state;
@@ -140,12 +160,25 @@ export function createGloves(renderer, scene) {
   const v = new THREE.Vector3();
   const fwd = new THREE.Vector3();
   const quat = new THREE.Quaternion();
+  const gripPos = new THREE.Vector3();
+  // Controller gloves are oriented from the pointing ray (its -Z runs along the forearm when you
+  // punch). The grip space's -Z runs along the handle towards the thumb, which made the old glove
+  // point up/sideways. Glove +Y (back of hand) -> ray +X on the right hand / -X on the left.
+  const ROT_RIGHT = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -Math.PI / 2);
+  const ROT_LEFT = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2);
 
   function trackController(h) {
-    h.tracked = h.grip.visible !== false;
-    if (!h.tracked) return false;
-    h.grip.getWorldPosition(tmp);
-    tmp.add(fwd.set(0, 0, -0.05).applyQuaternion(h.grip.getWorldQuaternion(quat)));
+    h.tracked = h.grip.visible !== false && h.controller.visible !== false;
+    if (!h.tracked) { h.glove.visible = false; return false; }
+    h.grip.getWorldPosition(gripPos);
+    h.controller.getWorldQuaternion(quat);
+    fwd.set(0, 0, -1).applyQuaternion(quat);
+    // glove: wrist sits a little behind the grip so the fist covers the hand holding the controller
+    h.glove.position.copy(gripPos).addScaledVector(fwd, -0.05);
+    h.glove.quaternion.copy(quat).multiply(h.hand === 'left' ? ROT_LEFT : ROT_RIGHT);
+    h.glove.visible = true;
+    // striking point: just in front of the knuckles
+    tmp.copy(gripPos).addScaledVector(fwd, 0.06);
     return true;
   }
 
@@ -165,8 +198,9 @@ export function createGloves(renderer, scene) {
     // push slightly past the knuckles, onto the glove's striking surface
     tmp.add(v.copy(tmp).sub(wristPos).multiplyScalar(0.15));
     // glove follows the wrist pose (WebXR joints: -Z toward the fingers, +Y back of hand)
-    h.glove.position.copy(wristPos);
-    wrist.getWorldQuaternion(h.glove.quaternion);
+    wrist.getWorldQuaternion(quat);
+    if (!h.glove.visible) { h.glove.position.copy(wristPos); h.glove.quaternion.copy(quat); }
+    else { h.glove.position.lerp(wristPos, 0.7); h.glove.quaternion.slerp(quat, 0.6); }
     h.glove.visible = true;
     h.tracked = true;
     return true;
@@ -218,6 +252,9 @@ export function createGloves(renderer, scene) {
     if (!h.glove || h.flash <= 0) return;
     h.flash = Math.max(0, h.flash - dt * 4);
     h.glove.userData.mat.emissiveIntensity = 0.08 + h.flash * 1.4;
+    // impact squash: the glove flattens a little on contact and springs back
+    const k = Math.sin(h.flash * Math.PI) * 0.5 * h.flash;
+    h.glove.userData.body.scale.set(1 + k * 0.18, 1 + k * 0.18, 1 - k * 0.25);
     h.glove.userData.halo.scale.setScalar(h.glove.userData.haloBase * (1 + h.flash * 1.2));
     h.glove.userData.halo.material.opacity = 0.3 + h.flash * 0.5;
   }
@@ -236,6 +273,11 @@ export function createGloves(renderer, scene) {
     h.flash = 1;
     const actuator = h?.gamepad?.hapticActuators?.[0];
     if (actuator?.pulse) actuator.pulse(intensity, ms);
+  }
+
+  function tick(h) {
+    const actuator = h?.gamepad?.hapticActuators?.[0];
+    if (actuator?.pulse) actuator.pulse(0.15, 12);
   }
 
   function showRays(visible) {
@@ -266,5 +308,5 @@ export function createGloves(renderer, scene) {
     return m;
   }
 
-  return { hands, inputs, desktop, update, active, buzz, showRays, onSelect, usingHands, injectMockHand };
+  return { hands, inputs, desktop, update, active, buzz, tick, showRays, onSelect, usingHands, injectMockHand };
 }

@@ -1,64 +1,67 @@
 // All sound is generated in code with the Web Audio API:
 // no music files, no licensing issues, tiny download, works offline.
-
+//
+// The soundtrack is original PHONK-style music: a TR-808 cowbell melody, a heavy distorted
+// 808 bass that slides between notes, hard kicks, claps and fast hi-hat rolls.
+// Patterns: 'x' = hit, '.' = rest (16 steps = 1 bar). cow/b808: 32 steps (2 bars), semitones
+// above the root or null. The cowbell plays 3 octaves above the root, the 808 at the root.
+const _ = null;
 export const TRACKS = [
   {
-    id: 'warmup', name: 'Neon Warmup', bpm: 104, pro: false,
-    root: 45, // A2
-    scale: [0, 3, 5, 7, 10],
-    kick:  'x...x...x...x...',
-    snare: '....x.......x...',
-    hat:   '..x...x...x...x.',
-    bass:  [0, 0, 7, 0, 5, 5, 3, 3],
+    id: 'warmup', name: 'Drift Ignition', bpm: 120, pro: false,
+    root: 41, // F
+    kick:  'x.........x.....',
+    clap:  '........x.......',
+    hat:   'x.x.x.x.x.x.x.xx',
+    cow:  [0,_,0,_,3,_,0,_, 1,_,0,_,_,_,-2,_,  0,_,0,_,3,_,5,_, 3,_,1,_,0,_,_,_],
+    b808: [0,_,_,_,_,_,_,_, _,_,0,_,_,_,_,_,  -2,_,_,_,_,_,_,_, _,_,1,_,_,_,_,_],
   },
   {
-    id: 'drive', name: 'Pulse Drive', bpm: 120, pro: false,
-    root: 40, // E2
-    scale: [0, 2, 3, 7, 10],
-    kick:  'x...x...x...x...',
-    snare: '....x.......x...',
-    hat:   'x.x.x.x.x.x.x.x.',
-    bass:  [0, 0, 12, 0, 10, 10, 7, 3],
-  },
-  {
-    id: 'overdrive', name: 'Overdrive', bpm: 140, pro: true,
-    root: 38, // D2
-    scale: [0, 1, 5, 7, 8],
-    kick:  'x..x..x.x...x..x',
-    snare: '....x.......x..x',
-    hat:   'xxxxxxxxxxxxxxxx',
-    bass:  [0, 12, 0, 7, 0, 8, 7, 5],
-    lead: 'sawtooth',
-  },
-  {
-    id: 'chill', name: 'Chill Circuit', bpm: 96, pro: false,
-    root: 43, // G2
-    scale: [0, 2, 4, 7, 9],
+    id: 'drive', name: 'Midnight Drift', bpm: 130, pro: false,
+    root: 40, // E
     kick:  'x.....x...x.....',
-    snare: '....x.......x...',
-    hat:   '..x...x...x...xx',
-    bass:  [0, 0, 4, 4, 9, 9, 7, 7],
-    lead: 'triangle', pad: true,
+    clap:  '....x.......x...',
+    hat:   'xxx.x.xxx.x.x.xx',
+    cow:  [12,_,7,_,8,_,7,_, 12,_,7,_,8,7,5,_,  12,_,7,_,8,_,10,_, 8,_,7,_,5,_,3,_],
+    b808: [0,_,_,_,_,_,0,_, _,_,3,_,_,_,_,_,  0,_,_,_,_,_,0,_, _,_,-2,_,_,_,1,_],
   },
   {
-    id: 'sunset', name: 'Sunset Sprint', bpm: 128, pro: true,
-    root: 41, // F2
-    scale: [0, 3, 5, 7, 10],
-    kick:  'x...x...x...x...',
-    snare: '....x.......x...',
-    hat:   '..x.x.x...x.x.xx',
-    bass:  [0, 12, 0, 12, 3, 15, 5, 17],
-    lead: 'square', pad: true,
+    id: 'chill', name: 'Cowbell Cruise', bpm: 112, pro: false,
+    root: 43, // G
+    kick:  'x.......x.x.....',
+    clap:  '........x.......',
+    hat:   'x.x.x.x.x.x.x.x.',
+    cow:  [0,_,_,3,_,_,5,_, 3,_,_,0,_,_,-2,_,  0,_,_,3,_,_,7,_, 5,_,3,_,0,_,_,_],
+    b808: [0,_,_,_,_,_,_,_, -4,_,-2,_,_,_,_,_,  0,_,_,_,_,_,_,_, -5,_,-2,_,_,_,_,_],
+    pad: true,
   },
   {
-    id: 'thunder', name: 'Thunderstrike', bpm: 150, pro: true,
-    root: 36, // C2
-    scale: [0, 1, 3, 7, 8],
-    kick:  'x.x.x..xx.x.x..x',
-    snare: '....x.......x.xx',
+    id: 'overdrive', name: 'Phonk Overdrive', bpm: 140, pro: true,
+    root: 38, // D
+    kick:  'x..x..x...x..x..',
+    clap:  '....x.......x...',
     hat:   'xxxxxxxxxxxxxxxx',
-    bass:  [0, 0, 12, 0, 1, 1, 13, 7],
-    lead: 'sawtooth',
+    cow:  [0,0,_,3,_,1,_,0, _,0,3,_,5,_,3,1,  0,0,_,3,_,1,_,0, _,7,_,5,_,3,1,_],
+    b808: [0,_,_,0,_,_,1,_, _,_,0,_,_,-2,_,_,  0,_,_,0,_,_,1,_, _,_,3,_,_,1,_,_],
+  },
+  {
+    id: 'sunset', name: 'Neon Street', bpm: 132, pro: true,
+    root: 41, // F
+    kick:  'x.....x.x.......',
+    clap:  '....x.......x...',
+    hat:   'x.xxx.x.x.xxx.xx',
+    cow:  [7,_,5,_,3,_,5,_, 7,_,_,10,_,8,7,_,  7,_,5,_,3,_,5,_, 3,_,1,_,0,_,_,_],
+    b808: [0,_,_,_,_,_,0,_, 0,_,_,_,_,_,_,_,  -4,_,_,_,_,_,-4,_, -2,_,_,_,_,_,_,_],
+    pad: true,
+  },
+  {
+    id: 'thunder', name: 'Brazil Thunder', bpm: 150, pro: true,
+    root: 36, // C
+    kick:  'x..x..x.x..x..x.',
+    clap:  '....x.......x..x',
+    hat:   'xxxxxxxxxxxxxxxx',
+    cow:  [12,_,12,_,13,_,12,10, _,8,_,7,_,8,_,_,  12,_,12,_,15,_,13,12, _,10,_,8,7,_,_,_],
+    b808: [0,_,_,0,_,_,0,_, 0,_,_,1,_,_,_,_,  0,_,_,0,_,_,0,_, 3,_,_,1,_,_,_,_],
   },
 ];
 export const trackById = (id) => TRACKS.find((t) => t.id === id) || TRACKS[0];
@@ -96,6 +99,19 @@ export class AudioEngine {
       this.analyser.fftSize = 128;
       this.analyser.smoothingTimeConstant = 0.6;
       this.musicBus.connect(this.analyser);
+
+      // 808 bus: soft-clip distortion + lowpass for that saturated phonk bass
+      this.bassBus = this.ctx.createGain();
+      this.bassBus.gain.value = 0.85;
+      const shaper = this.ctx.createWaveShaper();
+      const curve = new Float32Array(1024);
+      for (let i = 0; i < curve.length; i++) { const x = (i / (curve.length - 1)) * 2 - 1; curve[i] = Math.tanh(x * 3.2) / Math.tanh(3.2); }
+      shaper.curve = curve;
+      shaper.oversample = '2x';
+      this.bassFilter = this.ctx.createBiquadFilter();
+      this.bassFilter.type = 'lowpass';
+      this.bassFilter.frequency.value = 1400;
+      this.bassBus.connect(shaper).connect(this.bassFilter).connect(this.musicBus);
       this.spectrumData = new Uint8Array(this.analyser.frequencyBinCount);
       this.sfxBus = this.ctx.createGain();
       this.sfxBus.gain.value = 0.9;
@@ -131,6 +147,7 @@ export class AudioEngine {
     this.playing = true;
     this.startTime = this.ctx.currentTime + delay;
     this.nextStep = 0;
+    this.last808 = 0;
     this.timer = setInterval(() => this._schedule(), 25);
     this._schedule();
   }
@@ -159,25 +176,37 @@ export class AudioEngine {
     const tr = this.track;
     const s = step % 16;
     const bar = Math.floor(step / 16);
-    const intro = bar < 2;
-    const breakdown = bar % 16 === 15;               // a calmer bar every 16 for musical variety
-    if (!breakdown && tr.kick[s] === 'x') this.kick(t);
-    if (tr.pad && s === 0) {
-      const chord = [0, 2, 4].map((k) => tr.scale[(k + Math.floor(bar / 2)) % tr.scale.length]);
-      chord.forEach((n) => this.pad(t, midiToHz(tr.root + 24 + n), stepDur * 15));
+    const s32 = step % 32;
+    const intro = bar < 2;                             // cowbell + hats first, then the drop
+    const breakdown = bar % 16 === 15;                 // one stripped-back bar every 16
+    const fill = bar % 4 === 3;                        // hi-hat roll + extra kick at the end of every 4 bars
+
+    if (!intro && !breakdown && tr.kick[s] === 'x') this.kick(t);
+    if (!intro && !breakdown && fill && s === 14) this.kick(t);
+    if (!intro && tr.clap[s] === 'x') this.clap(t);
+    // hats, with a fast triplet roll at the end of each 4-bar phrase
+    if (fill && s >= 12) {
+      for (let r = 0; r < 3; r++) this.hat(t + (r * stepDur) / 3, 0.07 + r * 0.02);
+    } else if (tr.hat[s] === 'x') this.hat(t, s % 4 === 2 ? 0.14 : 0.08);
+    if (s % 8 === 4) this.openHat(t);
+
+    // distorted 808 that slides into each new note
+    const bn = tr.b808[s32];
+    if (!intro && bn !== null && bn !== undefined) {
+      let len = 1;
+      while (len < 8 && tr.b808[(s32 + len) % 32] == null) len++;
+      this.bass808(t, midiToHz(tr.root + bn), stepDur * len * (breakdown ? 0.5 : 1));
     }
-    if (!intro && tr.snare[s] === 'x') this.snare(t);
-    if (tr.hat[s] === 'x') this.hat(t, s % 4 === 2 ? 0.16 : 0.09);
-    if (!intro && s % 2 === 0) {
-      const note = tr.bass[(s / 2) % tr.bass.length];
-      this.bass(t, midiToHz(tr.root + note), stepDur * 1.8);
+    // cowbell melody (an octave higher on alternate 8-bar phrases for lift)
+    const cn = tr.cow[s32];
+    if (cn !== null && cn !== undefined) {
+      const lift = !intro && Math.floor(bar / 8) % 2 === 1 ? 12 : 0;
+      this.cowbell(t, midiToHz(tr.root + 36 + cn + lift), breakdown ? 0.07 : 0.11);
     }
-    // Arpeggio lead from bar 4 onward, varies every 4 bars
-    if (bar >= 4 && s % 2 === 1) {
-      const phrase = Math.floor(bar / 4) % 3;
-      const idx = (s + phrase * 3 + bar) % tr.scale.length;
-      const octave = (s % 8 === 7) ? 24 : 12;
-      this.lead(t, midiToHz(tr.root + 12 + tr.scale[idx] + octave), stepDur * 0.9, tr.lead);
+    if (tr.pad && s === 0 && bar % 2 === 0) {
+      const minor = [0, 3, 7];
+      const shift = [0, -4, -2, -5][Math.floor(bar / 2) % 4];
+      minor.forEach((n) => this.pad(t, midiToHz(tr.root + 24 + n + shift), stepDur * 31));
     }
   }
 
@@ -185,13 +214,61 @@ export class AudioEngine {
   kick(t) {
     const o = this.ctx.createOscillator();
     const g = this.ctx.createGain();
-    o.frequency.setValueAtTime(150, t);
-    o.frequency.exponentialRampToValueAtTime(42, t + 0.12);
-    g.gain.setValueAtTime(1, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    o.frequency.setValueAtTime(190, t);
+    o.frequency.exponentialRampToValueAtTime(48, t + 0.09);
+    g.gain.setValueAtTime(1.1, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
     o.connect(g).connect(this.musicBus);
-    o.start(t); o.stop(t + 0.36);
+    o.start(t); o.stop(t + 0.3);
+    this._noise(t, 0.012, 'highpass', 3000, 0.35); // click
   }
+
+  bass808(t, hz, dur) {
+    dur = Math.max(0.18, Math.min(dur, 1.6));
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = 'sine';
+    const from = this.last808 || hz;
+    if (Math.abs(from - hz) > 1) {                    // new note: glide from the last one (the phonk "slide")
+      o.frequency.setValueAtTime(from, t);
+      o.frequency.exponentialRampToValueAtTime(hz, t + 0.08);
+    } else {                                           // same note: a punchy pitch drop
+      o.frequency.setValueAtTime(hz * 2, t);
+      o.frequency.exponentialRampToValueAtTime(hz, t + 0.03);
+    }
+    this.last808 = hz;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.9, t + 0.006);
+    g.gain.setValueAtTime(0.9, t + dur * 0.55);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g).connect(this.bassBus);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+
+  // TR-808 style cowbell: two detuned square waves through a band-pass, sharp decay
+  cowbell(t, hz, vol = 0.11) {
+    const bp = this.ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = hz * 1.5; bp.Q.value = 1.2;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(vol * 0.35, t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+    for (const ratio of [1, 1.48]) {
+      const o = this.ctx.createOscillator();
+      o.type = 'square'; o.frequency.value = hz * ratio;
+      o.connect(bp);
+      o.start(t); o.stop(t + 0.3);
+    }
+    bp.connect(g).connect(this.musicBus);
+  }
+
+  clap(t) {
+    // three quick noise bursts + a tail = hand clap
+    for (let i = 0; i < 3; i++) this._noise(t + i * 0.011, 0.03, 'bandpass', 1500, 0.55);
+    this._noise(t + 0.033, 0.16, 'bandpass', 1200, 0.5);
+  }
+
+  openHat(t) { this._noise(t, 0.16, 'highpass', 7000, 0.07); }
 
   _noise(t, dur, type, freq, vol, bus) {
     const src = this.ctx.createBufferSource();
@@ -205,32 +282,7 @@ export class AudioEngine {
     src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.01);
   }
 
-  snare(t) {
-    this._noise(t, 0.18, 'bandpass', 1800, 0.7);
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    o.type = 'triangle'; o.frequency.value = 190;
-    g.gain.setValueAtTime(0.4, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-    o.connect(g).connect(this.musicBus);
-    o.start(t); o.stop(t + 0.11);
-  }
-
   hat(t, vol) { this._noise(t, 0.05, 'highpass', 8000, vol); }
-
-  bass(t, hz, dur) {
-    const o = this.ctx.createOscillator();
-    const f = this.ctx.createBiquadFilter();
-    const g = this.ctx.createGain();
-    o.type = 'sawtooth'; o.frequency.value = hz;
-    f.type = 'lowpass'; f.Q.value = 6;
-    f.frequency.setValueAtTime(900, t);
-    f.frequency.exponentialRampToValueAtTime(140, t + dur);
-    g.gain.setValueAtTime(0.32, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    o.connect(f).connect(g).connect(this.musicBus);
-    o.start(t); o.stop(t + dur + 0.02);
-  }
 
   pad(t, hz, dur) {
     const o = this.ctx.createOscillator();
@@ -239,20 +291,10 @@ export class AudioEngine {
     o.type = 'sawtooth'; o.frequency.value = hz; o.detune.value = (Math.random() - 0.5) * 14;
     f.type = 'lowpass'; f.frequency.value = 1100;
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(0.035, t + dur * 0.3);
+    g.gain.linearRampToValueAtTime(0.03, t + dur * 0.2);
     g.gain.linearRampToValueAtTime(0.0001, t + dur);
     o.connect(f).connect(g).connect(this.musicBus);
     o.start(t); o.stop(t + dur + 0.05);
-  }
-
-  lead(t, hz, dur, type = 'square') {
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    o.type = type; o.frequency.value = hz;
-    g.gain.setValueAtTime(0.045, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    o.connect(g).connect(this.musicBus);
-    o.start(t); o.stop(t + dur + 0.02);
   }
 
   // ---------- sound effects ----------

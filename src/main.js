@@ -10,7 +10,8 @@ import { generateChart, tutorialChart } from './chart.js';
 import { Storage, dateKey } from './storage.js';
 import { PROGRAMS, nextProgramSession, dailyChallenge, ACHIEVEMENTS, evaluateAchievements } from './progression.js';
 import { IAP } from './iap.js';
-import { Panel, Button, gloveTouchesButton, roundRect, text, fitText } from './ui.js';
+import { Panel, Button, gloveTouchesButton, buttonNormal, roundRect, text, fitText, card, pop, updateTweens } from './ui.js';
+import { glowSprite } from './gfx.js';
 import { RoomEnvironment } from '../vendor/RoomEnvironment.js';
 
 // =====================================================================
@@ -19,7 +20,7 @@ import { RoomEnvironment } from '../vendor/RoomEnvironment.js';
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 100);
 camera.position.set(0, 1.6, 0);
-camera.lookAt(0, 1.35, -1.2);
+camera.lookAt(0, 1.52, -1.2);
 
 // alpha: true so Mixed Reality can show the real room behind the game
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
@@ -47,17 +48,29 @@ const settings = Storage.settings;
 arena.setTheme(settings.theme);
 
 // =====================================================================
-// UI building blocks (the UI group follows the player's head height)
+// UI building blocks. The UI group sits at the player's eye height; in menus it also turns to
+// face wherever the player is looking (like the Quest home menu).
 // =====================================================================
 const ui = new THREE.Group();
 ui.position.y = 1.6;
 scene.add(ui);
 let headY = 1.6;
 
+// Menu layout: buttons live on a plane 0.75 m in front of the eyes (arm's reach for a poke,
+// comfortable to point at), centred slightly above eye level; info panels sit just behind it.
+const MENU_Z = -0.75, MENU_Y = 0.13, MENU_SCALE = 1.1;
+function nearPlane(parent) {
+  const p = new THREE.Group();
+  p.position.set(0, MENU_Y, MENU_Z);
+  p.scale.setScalar(MENU_SCALE);
+  parent.add(p);
+  return p;
+}
+
 const buttons = [];
 function addButton(parent, w, h, label, x, y, onPress, opts = {}) {
   const b = new Button(w, h, label, onPress, opts);
-  b.mesh.position.set(x, y, opts.z ?? CONFIG.HIT_PLANE_Z);
+  b.mesh.position.set(x, y, opts.z ?? 0);
   parent.add(b.mesh);
   buttons.push(b);
   return b;
@@ -78,30 +91,35 @@ const lockUI = () => { uiLock = 0.45; };
 // ---------- shared menu panels ----------
 const menu = new THREE.Group();
 ui.add(menu);
-const titlePanel = addPanel(menu, 1.3, 0.42, 0, 0.42, -1.5);
-const msgPanel = addPanel(menu, 0.9, 0.06, 0, -0.54, CONFIG.HIT_PLANE_Z);
-const statsPanel = addPanel(menu, 1.5, 0.82, 0, 0.14, -1.3);
+const TITLE_Y = 0.5, TITLE_Z = -1.0;
+const titlePanel = addPanel(menu, 1.1, 0.3, 0, TITLE_Y, TITLE_Z);
+const menuNear = nearPlane(menu);
+// one glass card behind every menu's buttons, so each screen reads as one clean block
+const backCard = addPanel(menuNear, 0.98, 0.675, 0, -0.2175, -0.02);
+backCard.mesh.renderOrder = 9;
+backCard.draw((c, W, H) => card(c, W, H, { border: 'rgba(0,229,255,0.35)', fill: 'rgba(6,9,24,0.72)', radius: 40, line: 4 }));
+const msgPanel = addPanel(menuNear, 0.9, 0.055, 0, -0.515, 0);
+const statsPanel = addPanel(menu, 1.5, 0.82, 0, 0.17, -1.05);
 
 function setMessage(str, color = CSS.dim) {
-  msgPanel.draw((c, W, H) => fitText(c, str, W / 2, H / 2, 34, W - 20, color, 600));
+  msgPanel.draw((c, W, H) => fitText(c, str, W / 2, H / 2, 32, W - 20, color, 600));
 }
 
 function drawTitle(title, line2 = '', line3 = '', color = '#ffffff') {
   titlePanel.draw((c, W, H) => {
-    c.shadowColor = CSS.accent; c.shadowBlur = 40;
-    fitText(c, title, W / 2, H * 0.3, 150, W - 40, color, 900);
+    c.shadowColor = CSS.accent; c.shadowBlur = 36;
+    fitText(c, title, W / 2, H * 0.3, 120, W - 60, color, 900);
     c.shadowBlur = 0;
-    if (line2) fitText(c, line2, W / 2, H * 0.62, 44, W - 40, CSS.text, 600);
-    if (line3) fitText(c, line3, W / 2, H * 0.84, 38, W - 40, CSS.dim, 600);
+    if (line2) fitText(c, line2, W / 2, H * 0.64, 38, W - 60, CSS.text, 600);
+    if (line3) fitText(c, line3, W / 2, H * 0.86, 32, W - 60, CSS.dim, 600);
   });
 }
 
 // ---------- pages ----------
 const pages = {};
 function makePage(name) {
-  const g = new THREE.Group();
+  const g = nearPlane(menu);
   g.visible = false;
-  menu.add(g);
   pages[name] = g;
   return g;
 }
@@ -117,6 +135,7 @@ const homeBtns = {
   settings: addButton(home, BW, BH, 'SETTINGS', COL3[1], ROW[1], () => showPage('settings'), { color: CSS.dim }),
   tutorial: addButton(home, BW, BH, 'TUTORIAL', COL3[2], ROW[1], () => startSession(tutorialSession()), { color: CSS.magenta }),
   pro: addButton(home, 0.51, 0.1, 'UNLOCK PRO', 0, ROW[2], () => askPro(true), { color: CSS.gold }),
+  exit: addButton(home, 0.24, 0.1, 'EXIT', 0, ROW[3], () => exitGame(), { color: CSS.left }),
 };
 
 // ---------------- QUICK PLAY ----------------
@@ -174,7 +193,15 @@ const themeButtons = THEMES.map((t, i) =>
     Storage.setSetting('theme', t.id); arena.setTheme(t.id); audio.sfxClick(); refreshSettings();
   }, { color: CSS.violet })
 );
-addButton(settingsPage, 0.24, 0.1, 'BACK', 0, ROW[3] - 0.01, () => showPage('home'), { color: CSS.dim });
+const hintsButton = addButton(settingsPage, 0.3, 0.1, 'HINTS', -0.17, ROW[3] - 0.01, () => {
+  Storage.setSetting('hints', hintsActive() ? 'off' : 'on'); audio.sfxClick(); refreshSettings();
+}, { color: CSS.gold });
+addButton(settingsPage, 0.3, 0.1, 'BACK', 0.17, ROW[3] - 0.01, () => showPage('home'), { color: CSS.dim });
+
+// Hints show during a player's first real workout, or always if they switch them on.
+function hintsActive() {
+  return settings.hints === 'on' || (settings.hints !== 'off' && !settings.firstRunDone);
+}
 
 // ---------- refresh functions ----------
 function refreshHome() {
@@ -189,8 +216,9 @@ function refreshHome() {
   homeBtns.tutorial.set({ selected: !settings.tutorialDone, sub: settings.tutorialDone ? '' : 'START HERE' });
   homeBtns.pro.mesh.visible = !IAP.pro && IAP.available;
   homeBtns.pro.set({ label: IAP.price ? `UNLOCK PRO  ${IAP.price}` : 'UNLOCK PRO' });
-  setMessage(gloves.usingHands() ? 'Punch or poke a button  •  or pinch to point and select'
-    : 'Punch a button  •  or point and pull the trigger');
+  homeBtns.exit.mesh.position.y = homeBtns.pro.mesh.visible ? ROW[3] : ROW[2];
+  setMessage(gloves.usingHands() ? 'Point and pinch to select  •  or poke a button'
+    : 'Point and pull the trigger  •  or punch a button');
   if (!settings.tutorialDone) setMessage('New here? Punch TUTORIAL to learn the moves (1 minute)', CSS.gold);
 }
 
@@ -244,6 +272,9 @@ function refreshSettings() {
     const locked = t.pro && !IAP.pro;
     b.set({ selected: settings.theme === t.id, locked, sub: locked ? 'PRO' : '' });
   });
+  const hOn = hintsActive();
+  hintsButton.set({ label: hOn ? 'HINTS: ON' : 'HINTS: OFF', selected: hOn,
+    sub: settings.hints === 'on' || settings.hints === 'off' ? '' : 'FIRST WORKOUT' });
   drawTitle('SETTINGS', settings.posture === 'seated' ? 'Seated: targets stay in reach, no dodge walls' : 'Standing: full workout with ducks and leans',
     settings.mode === 'mr' ? 'Mixed Reality: play in your own room' : 'Virtual Reality: neon arena');
   setMessage('Changes are saved automatically');
@@ -262,8 +293,7 @@ function refreshStats() {
   }
   const maxK = Math.max(30, ...days.map((d) => d.kcal));
   statsPanel.draw((c, W, H) => {
-    roundRect(c, 6, 6, W - 12, H - 12, 36); c.fillStyle = CSS.panel; c.fill();
-    c.lineWidth = 5; c.strokeStyle = CSS.violet; c.stroke();
+    card(c, W, H, { border: CSS.violet, radius: 40 });
     text(c, 'YOUR STATS', 60, 70, 64, '#fff', 900, 'left');
     // left column: numbers
     const rows = [
@@ -282,8 +312,8 @@ function refreshStats() {
       text(c, v, 700, y, 36, '#fff', 800, 'right');
     });
     // weekly chart
-    text(c, 'LAST 7 DAYS (kcal)', 60, 625, 32, CSS.violet, 800, 'left');
-    const bx = 60, bw = 640, bh = 120, by = 790;
+    text(c, 'LAST 7 DAYS (kcal)', 60, 618, 32, CSS.violet, 800, 'left');
+    const bx = 60, bw = 640, bh = 90, by = 745;
     days.forEach((d, i) => {
       const w = bw / 7 - 18, x = bx + i * (bw / 7) + 9;
       const h = Math.max(4, (d.kcal / maxK) * bh);
@@ -296,11 +326,11 @@ function refreshStats() {
     const count = ACHIEVEMENTS.filter((a) => unlocked[a.id]).length;
     text(c, `ACHIEVEMENTS ${count}/${ACHIEVEMENTS.length}`, 780, 70, 44, CSS.gold, 900, 'left');
     ACHIEVEMENTS.forEach((a, i) => {
-      const y = 140 + i * 44;
+      const y = 130 + i * 43;
       const got = !!unlocked[a.id];
-      text(c, got ? '★' : '☆', 790, y, 32, got ? CSS.gold : CSS.dim, 900, 'left');
-      text(c, a.name, 835, y, 30, got ? '#fff' : CSS.dim, 800, 'left');
-      text(c, a.desc, 1100, y, 24, CSS.dim, 500, 'left');
+      text(c, got ? '★' : '☆', 790, y, 30, got ? CSS.gold : CSS.dim, 900, 'left');
+      fitText(c, a.name, 832, y, 28, 240, got ? '#fff' : CSS.dim, 800, 'left');
+      fitText(c, a.desc, 1085, y, 23, W - 1085 - 40, CSS.dim, 500, 'left');
     });
   });
   setMessage('Keep your streak alive — one workout a day');
@@ -311,9 +341,23 @@ function showPage(name) {
   for (const [n, g] of Object.entries(pages)) g.visible = n === name;
   titlePanel.mesh.visible = name !== 'stats';
   statsPanel.mesh.visible = name === 'stats';
+  backCard.mesh.visible = name !== 'stats';
   ({ home: refreshHome, quick: refreshQuick, programs: refreshPrograms, stats: refreshStats, settings: refreshSettings })[name]();
   if (state === 'menu') audio.sfxClick();
+  // entrance animation: card + title pop, buttons pop in one after another
+  if (name === 'stats') pop(statsPanel.mesh, { from: 0.9 });
+  else { pop(titlePanel.mesh, { from: 0.92 }); pop(backCard.mesh, { from: 0.96, dur: 0.25 }); }
+  appearButtons(pages[name]);
   lockUI();
+}
+
+function appearButtons(group, delay = 0.04) {
+  let i = 0;
+  for (const b of buttons) if (isVisibleInTree(b.mesh) && isInside(b.mesh, group)) b.appear(delay + Math.min(0.22, i++ * 0.022));
+}
+function isInside(obj, group) {
+  for (let o = obj; o; o = o.parent) if (o === group) return true;
+  return false;
 }
 
 async function askPro(fromButton) {
@@ -332,26 +376,35 @@ async function askPro(fromButton) {
 // ---------- in-game panels ----------
 const countdownPanel = addPanel(ui, 0.6, 0.6, 0, 0.1, -1.5);
 const hud = addPanel(ui, 1.4, 0.26, 0, 0.42, -2.2);
-const hintPanel = addPanel(ui, 1.5, 0.16, 0, 0.66, -2.2);
+const hintPanel = addPanel(ui, 1.8, 0.2, 0, 0.7, -2.2);
 countdownPanel.mesh.visible = hud.mesh.visible = hintPanel.mesh.visible = false;
+// Always-visible pause button next to the HUD: point at it and pinch / pull the trigger.
+// (Controllers can also press B or Y; the Quest menu button pauses too.)
+const gameBar = new THREE.Group();
+ui.add(gameBar);
+const pauseButton = addButton(gameBar, 0.34, 0.2, 'II  PAUSE', -0.92, 0.42, () => pauseGame(), { color: CSS.dim, z: -2.18 });
+gameBar.visible = false;
 
 const pauseGroup = new THREE.Group();
 ui.add(pauseGroup);
-const pausePanel = addPanel(pauseGroup, 0.9, 0.26, 0, 0.3, -1.3);
+const pausePanel = addPanel(pauseGroup, 0.9, 0.24, 0, 0.36, -1.1);
 pausePanel.draw((c, W, H) => {
-  roundRect(c, 6, 6, W - 12, H - 12, 30); c.fillStyle = CSS.panel; c.fill();
-  text(c, 'PAUSED', W / 2, H * 0.4, 110, '#fff', 900);
-  text(c, 'Punch, poke or point at a button to continue', W / 2, H * 0.78, 36, CSS.dim, 600);
+  card(c, W, H, { border: CSS.accent, radius: 34 });
+  text(c, 'PAUSED', W / 2, H * 0.42, 100, '#fff', 900);
+  fitText(c, 'Point and pinch (or pull the trigger) to choose', W / 2, H * 0.78, 32, W - 60, CSS.dim, 600);
 });
-addButton(pauseGroup, BW, BH, 'RESUME', -0.14, -0.08, () => resumeGame(), { color: CSS.green });
-addButton(pauseGroup, BW, BH, 'QUIT', 0.14, -0.08, () => quitToMenu(), { color: CSS.left });
+const pauseNear = nearPlane(pauseGroup);
+addButton(pauseNear, BW, BH, 'RESUME', -0.27, ROW[1], () => resumeGame(), { color: CSS.green });
+addButton(pauseNear, BW, BH, 'RESTART', 0, ROW[1], () => { audio.resume(); startSession(lastSession); }, { color: CSS.accent });
+addButton(pauseNear, BW, BH, 'QUIT', 0.27, ROW[1], () => quitToMenu(), { color: CSS.left, sub: 'TO MENU' });
 pauseGroup.visible = false;
 
 const resultsGroup = new THREE.Group();
 ui.add(resultsGroup);
-const resultsPanel = addPanel(resultsGroup, 1.25, 0.86, 0, 0.16, -1.6);
-const againButton = addButton(resultsGroup, BW, BH, 'AGAIN', -0.14, -0.34, () => startSession(lastSession), { color: CSS.green });
-addButton(resultsGroup, BW, BH, 'MENU', 0.14, -0.34, () => showMenu(), { color: CSS.accent });
+const resultsPanel = addPanel(resultsGroup, 1.2, 0.82, 0, 0.21, -1.35);
+const resultsNear = nearPlane(resultsGroup);
+const againButton = addButton(resultsNear, BW, BH, 'AGAIN', -0.14, -0.33, () => startSession(lastSession), { color: CSS.green });
+addButton(resultsNear, BW, BH, 'MENU', 0.14, -0.33, () => showMenu(), { color: CSS.accent });
 resultsGroup.visible = false;
 
 // =====================================================================
@@ -402,14 +455,52 @@ const headRef = { x: 0, y: 1.6 };
 
 function setScreen(s) {
   state = s;
+  const inGame = s === 'playing' || s === 'countdown';
   menu.visible = s === 'menu';
   countdownPanel.mesh.visible = s === 'countdown';
-  hud.mesh.visible = s === 'playing' || s === 'countdown';
-  hintPanel.mesh.visible = (s === 'playing' || s === 'countdown') && session?.kind === 'tutorial';
+  hud.mesh.visible = inGame;
+  gameBar.visible = inGame;
+  hintPanel.mesh.visible = inGame && !!session?.hints;
   pauseGroup.visible = s === 'paused';
   resultsGroup.visible = s === 'results';
-  gloves.showRays(s === 'menu' || s === 'paused' || s === 'results');
+  gloves.showRays(!inGame);
+  placeUI(true);
+  if (s === 'paused') { pop(pausePanel.mesh, { from: 0.9 }); appearButtons(pauseGroup); }
+  if (s === 'results') { pop(resultsPanel.mesh, { from: 0.88, dur: 0.4 }); appearButtons(resultsGroup, 0.25); }
+  if (inGame) { pop(hud.mesh, { from: 0.9 }); pauseButton.appear(0.1); }
   lockUI();
+}
+
+// Menus face the player: snap in front of them when a screen opens, then follow lazily if they
+// turn away (more than ~35°) or walk off. During play the UI stays fixed to the arena's front.
+const fwdTmp = new THREE.Vector3();
+let uiYaw = 0;
+function headYaw() {
+  if (!renderer.xr.isPresenting) return 0;
+  renderer.xr.getCamera().getWorldDirection(fwdTmp);
+  if (Math.hypot(fwdTmp.x, fwdTmp.z) < 0.2) return uiYaw; // looking straight up/down: keep
+  return Math.atan2(-fwdTmp.x, -fwdTmp.z);
+}
+function angleDiff(a, b) { return Math.atan2(Math.sin(a - b), Math.cos(a - b)); }
+function placeUI(snap = false, dt = 0) {
+  const inGame = state === 'playing' || state === 'countdown';
+  const xr = renderer.xr.isPresenting;
+  const tx = inGame || !xr ? 0 : headPos.x, tz = inGame || !xr ? 0 : headPos.z;
+  const tyaw = inGame ? 0 : headYaw();
+  if (snap) { uiYaw = tyaw; ui.position.x = tx; ui.position.z = tz; }
+  else if (!inGame) {
+    const d = angleDiff(tyaw, uiYaw);
+    if (Math.abs(d) > 0.6 || ui.userData.following) {
+      ui.userData.following = Math.abs(d) > 0.05;
+      uiYaw += d * Math.min(1, dt * 3);
+    }
+    const k = Math.min(1, dt * 2);
+    if (Math.hypot(tx - ui.position.x, tz - ui.position.z) > 0.25 || ui.userData.moving) {
+      ui.userData.moving = Math.hypot(tx - ui.position.x, tz - ui.position.z) > 0.02;
+      ui.position.x += (tx - ui.position.x) * k; ui.position.z += (tz - ui.position.z) * k;
+    }
+  }
+  ui.rotation.y = uiYaw;
 }
 
 function showMenu() {
@@ -439,8 +530,13 @@ function startSession(s) {
   countdownEnd = performance.now() + 3000;
   lastCount = 4;
   hudDirty = true;
+  s.hints = s.kind === 'tutorial' || hintsActive();
+  hintState.seen = new Set(); hintState.until = 0; hintState.misses = 0; hintState.wrongShown = 0; hintState.wallShown = false; hintState.doneShown = false;
   setScreen('countdown');
-  drawHint(s.kind === 'tutorial' ? 'Stand in the glowing circle — get ready!' : '');
+  lastHint = null;
+  if (s.kind === 'tutorial') drawHint('Stand in the glowing circle — get ready!');
+  else if (s.hints) drawHint(gloves.usingHands() ? 'Make FISTS!  RED = LEFT hand  •  BLUE = RIGHT hand' : 'RED = LEFT glove  •  BLUE = RIGHT glove  •  punch on the beat', 4);
+  else drawHint('');
 }
 
 function startGame() {
@@ -479,6 +575,8 @@ function endGame() {
   let isBest = false, achievements = [];
   if (session.kind === 'tutorial') {
     Storage.setSetting('tutorialDone', true);
+  } else if (!settings.firstRunDone) {
+    Storage.setSetting('firstRunDone', true); // first real workout done: auto-hints switch off
   }
   const rec = Storage.recordWorkout(
     { mode: session.mode, minutes: session.minutes, trackId: session.track.id, difficulty: session.difficulty.id, kind: session.kind, programId: session.programId },
@@ -494,8 +592,7 @@ function endGame() {
 
   const heading = { quick: 'WORKOUT COMPLETE', daily: 'DAILY CHALLENGE', program: (session.label || '').toUpperCase(), tutorial: 'TUTORIAL COMPLETE' }[session.kind];
   resultsPanel.draw((c, W, H) => {
-    roundRect(c, 6, 6, W - 12, H - 12, 36); c.fillStyle = CSS.panel; c.fill();
-    c.lineWidth = 6; c.strokeStyle = CSS.accent; c.stroke();
+    card(c, W, H, { border: CSS.accent, radius: 40 });
     fitText(c, heading, W / 2, 80, 66, W - 60, CSS.accent, 900);
     text(c, g.score.toLocaleString(), W / 2 - 120, 200, 140, '#fff', 900);
     text(c, letterGrade(accuracy), W / 2 + 330, 200, 150, CSS.gold, 900);
@@ -562,6 +659,7 @@ function updatePlaying(dt) {
     audio.sfxHit(Math.min(1.3, 0.6 + h.speed / 5));
     gloves.buzz(h.glove, 0.8, 50);
   }
+  if (session.hints && session.kind !== 'tutorial') reactiveHints(res, t);
   for (const w of res.wrong) {
     g.combo = 0; g.wrong++; g.punches++;
     fx.burst(w.pos, 0x888888, 0.5); fx.popup('WRONG', w.pos);
@@ -591,6 +689,7 @@ function updatePlaying(dt) {
 
   g.kcal += dt * 0.07; // baseline effort while moving
   if (session.kind === 'tutorial') updateTutorialHint(t);
+  else if (session.hints) updateFreePlayHint(t);
   if (t >= g.duration) endGame();
 }
 
@@ -605,16 +704,57 @@ const HINTS = {
   'leanL-none': 'LEAN LEFT to dodge the wall',
   'leanR-none': 'LEAN RIGHT to dodge the wall',
 };
-let lastHint = '';
-function drawHint(str) {
+// first-workout hints (Quick Play / Daily / Programs): one per move type, the first time it appears
+const FIRST_HINTS = {
+  punch: 'RED = LEFT fist  •  BLUE = RIGHT fist  •  hit as the ring closes',
+  upper: 'ARROW target = UPPERCUT: swing your fist UP from below',
+  block: 'PURPLE bar = BLOCK: raise BOTH fists in front of your face',
+  duck: 'ORANGE wall = DUCK: bend your knees and go under it',
+  leanL: 'Wall on the right = LEAN LEFT to dodge it',
+  leanR: 'Wall on the left = LEAN RIGHT to dodge it',
+};
+const hintState = { seen: new Set(), until: 0, misses: 0, wrongShown: 0, wallShown: false, doneShown: false };
+let lastHint = null;
+function drawHint(str, holdSec = 0) {
+  if (holdSec) hintState.until = (state === 'playing' ? audio.songTime : 0) + holdSec;
   if (str === lastHint) return;
   lastHint = str;
   hintPanel.draw((c, W, H) => {
     if (!str) return;
-    roundRect(c, 6, 6, W - 12, H - 12, 30); c.fillStyle = 'rgba(8,12,30,0.85)'; c.fill();
-    c.lineWidth = 5; c.strokeStyle = CSS.gold; c.stroke();
-    fitText(c, str, W / 2, H / 2, 54, W - 40, '#fff', 800);
+    card(c, W, H, { border: CSS.gold, fill: 'rgba(8,12,30,0.88)', radius: 34 });
+    fitText(c, str, W / 2, H / 2, 66, W - 70, '#fff', 800);
   });
+  if (str) pop(hintPanel.mesh, { from: 0.85, dur: 0.28 });
+}
+function updateFreePlayHint(t) {
+  if (t < hintState.until) return;
+  const upcoming = targets.chart.find((n) => n.time > t && n.time - t < 2.6 && !hintState.seen.has(n.type));
+  if (upcoming) {
+    hintState.seen.add(upcoming.type);
+    drawHint(FIRST_HINTS[upcoming.type] || '', Math.max(2.4, upcoming.time - t + 0.6));
+    return;
+  }
+  if (!hintState.doneShown && t > 50 && hintState.seen.size >= 2) {
+    hintState.doneShown = true;
+    drawHint('Nice! Hints switch off after this workout (Settings → Hints)', 3.5);
+    return;
+  }
+  drawHint('');
+}
+function reactiveHints(res, t) {
+  if (res.hits.length) hintState.misses = 0;
+  hintState.misses += res.misses;
+  if (res.wrong.length && hintState.wrongShown < 2) {
+    hintState.wrongShown++;
+    drawHint('Wrong hand!  RED = LEFT  •  BLUE = RIGHT', 2.5);
+  } else if (hintState.misses >= 3) {
+    hintState.misses = 0;
+    drawHint(gloves.usingHands() ? 'Make a tight fist and punch THROUGH the target — quick and firm'
+      : 'Punch THROUGH the target as the ring closes — quick and firm', 3);
+  } else if (res.ouches.length && !hintState.wallShown) {
+    hintState.wallShown = true;
+    drawHint('Watch the walls — DUCK under or LEAN around them', 3);
+  }
 }
 function updateTutorialHint(t) {
   const upcoming = targets.chart.find((n) => n.time > t - 0.2);
@@ -629,7 +769,7 @@ function drawHud() {
   const mm = Math.floor(left / 60), ss = Math.floor(left % 60).toString().padStart(2, '0');
   const m = mult();
   hud.draw((c, W, H) => {
-    roundRect(c, 6, 6, W - 12, H - 12, 30); c.fillStyle = 'rgba(8,12,30,0.7)'; c.fill();
+    card(c, W, H, { border: 'rgba(0,229,255,0.4)', fill: 'rgba(8,12,30,0.72)', radius: 34 });
     const cols = [W * 0.15, W * 0.39, W * 0.62, W * 0.85];
     const labels = ['SCORE', 'COMBO', 'TIME', 'KCAL'];
     const vals = [g.score.toLocaleString(), `${g.combo}  x${m}`, `${mm}:${ss}`, `${Math.round(g.kcal)}`];
@@ -655,6 +795,7 @@ function updateCountdown() {
       c.shadowColor = CSS.accent; c.shadowBlur = 50;
       text(c, n > 0 ? `${n}` : 'GO!', W / 2, H / 2, n > 0 ? 420 : 260, '#fff', 900);
     });
+    pop(countdownPanel.mesh, { from: 1.5, dur: 0.35 });
   }
   if (remaining <= 0) startGame();
 }
@@ -676,33 +817,94 @@ function updateButtonTouches() {
     if (!set) touching.set(b, (set = new Set()));
     const visible = isVisibleInTree(b.mesh);
     for (const gl of list) {
-      const inside = visible && gloveTouchesButton(gl, b, gl.kind === 'hand' ? 0.09 : 0.07);
+      const inside = visible && gloveTouchesButton(gl, b, gl.kind === 'hand' ? 0.1 : 0.08);
       if (inside && !set.has(gl)) {
         set.add(gl);
-        // must be a forward poke/punch, and not right after a screen change
-        if (uiLock <= 0 && gl.velocity.z < -CONFIG.BUTTON_PRESS_MIN_FORWARD && b.press()) gloves.buzz(gl, 0.5, 40);
+        // must move INTO the button (whichever way the menu faces), and not right after a screen change
+        const into = -gl.velocity.dot(buttonNormal(b));
+        if (uiLock <= 0 && into > CONFIG.BUTTON_PRESS_MIN_FORWARD && b.press()) gloves.buzz(gl, 0.5, 40);
       } else if (!inside) set.delete(gl);
     }
   }
 }
 
 const raycaster = new THREE.Raycaster();
+function pointerButtons() {
+  const inGame = state === 'playing' || state === 'countdown';
+  return inGame ? (gameBar.visible ? [pauseButton] : []) : buttons.filter((b) => isVisibleInTree(b.mesh));
+}
+function rayHit() {
+  const hit = raycaster.intersectObjects(pointerButtons().map((b) => b.mesh), false)[0];
+  return hit || null;
+}
 function pressFromRay() {
   if (uiLock > 0) return false;
-  const meshes = buttons.filter((b) => isVisibleInTree(b.mesh)).map((b) => b.mesh);
-  const hit = raycaster.intersectObjects(meshes, false)[0];
+  const hit = rayHit();
   if (hit) { hit.object.userData.button.press(); return true; }
   return false;
+}
+const rotM = new THREE.Matrix4();
+function setRayFrom(ctrl) {
+  rotM.extractRotation(ctrl.controller.matrixWorld);
+  raycaster.ray.origin.setFromMatrixPosition(ctrl.controller.matrixWorld);
+  raycaster.ray.direction.set(0, 0, -1).applyMatrix4(rotM);
 }
 
 gloves.onSelect((ctrl) => {
   audio.unlock();
-  if (state === 'playing' || state === 'countdown') return;
-  const m = new THREE.Matrix4().extractRotation(ctrl.controller.matrixWorld);
-  raycaster.ray.origin.setFromMatrixPosition(ctrl.controller.matrixWorld);
-  raycaster.ray.direction.set(0, 0, -1).applyMatrix4(m);
+  setRayFrom(ctrl);
   if (pressFromRay()) gloves.buzz(ctrl, 0.5, 40);
 });
+
+// Pointer feedback: the button under each ray glows and grows, a dot marks the exact spot, and the
+// ray stops at the button. During play the ray only appears while aiming at the PAUSE button.
+const cursors = gloves.inputs.map(() => {
+  const s = glowSprite(0xffffff, 0.035, 0.95);
+  s.renderOrder = 20; s.material.depthTest = false; s.visible = false;
+  scene.add(s);
+  return s;
+});
+const lastFocus = new Map();
+function updatePointers() {
+  for (const b of buttons) b.focus = false;
+  const inGame = state === 'playing' || state === 'countdown';
+  gloves.inputs.forEach((h, i) => {
+    const cur = cursors[i];
+    cur.visible = false;
+    if (!h.active || !renderer.xr.isPresenting) { h.ray.visible = false; return; }
+    setRayFrom(h);
+    const hit = rayHit();
+    if (hit) {
+      const b = hit.object.userData.button;
+      b.focus = true;
+      cur.position.copy(hit.point).addScaledVector(raycaster.ray.direction, -0.005);
+      cur.visible = true;
+      h.ray.scale.z = hit.distance;
+      if (lastFocus.get(h) !== b && h.kind === 'controller') gloves.tick(h);
+      lastFocus.set(h, b);
+    } else {
+      h.ray.scale.z = 1.2;
+      lastFocus.delete(h);
+    }
+    h.ray.visible = inGame ? !!hit : true;
+  });
+}
+
+// Controller B / Y button pauses during play
+const prevBY = new Map();
+function pollPauseButtons() {
+  for (const h of gloves.inputs) {
+    const pressed = !!h.gamepad?.buttons?.[5]?.pressed;
+    if (pressed && !prevBY.get(h) && (state === 'playing' || state === 'countdown')) pauseGame();
+    prevBY.set(h, pressed);
+  }
+}
+
+function exitGame() {
+  const s = renderer.xr.getSession();
+  if (s) s.end().catch(() => {});
+  setTimeout(() => { try { window.close(); } catch { /* not allowed in a normal tab */ } }, 300);
+}
 
 // ---------- mouse (desktop preview) ----------
 const mouse = new THREE.Vector2();
@@ -801,6 +1003,7 @@ renderer.xr.addEventListener('sessionstart', () => {
     if (s.visibilityState !== 'visible') pauseGame();
   });
   gloves.desktop.glove.visible = false;
+  ui.userData.placedOnce = false; // re-centre the menu in front of the player once the head pose arrives
   if (state === 'menu') showPage(page);
 });
 renderer.xr.addEventListener('sessionend', async () => {
@@ -856,12 +1059,18 @@ renderer.setAnimationLoop(() => {
   gloves.update(dt, xr);
   if (xr) renderer.xr.getCamera().getWorldPosition(headPos);
   if (state === 'menu' || state === 'results' || state === 'paused') measureHead();
+  if (xr && !ui.userData.placedOnce && headPos.y > 0.5) { ui.userData.placedOnce = true; placeUI(true); }
 
   if (state === 'countdown') updateCountdown();
   else if (state === 'playing') updatePlaying(dt);
-  if (state !== 'playing') updateButtonTouches();
+  if (state !== 'playing' && state !== 'countdown') updateButtonTouches();
+  updatePointers();
+  pollPauseButtons();
+  placeUI(false, dt);
+  titlePanel.mesh.position.y = TITLE_Y + Math.sin(clock.elapsedTime * 1.2) * 0.006; // gentle float
 
   buttons.forEach((b) => b.update(dt));
+  updateTweens(dt);
   fx.update(dt);
 
   let pulse, phase;
@@ -902,5 +1111,5 @@ if ('serviceWorker' in navigator) {
 window.punchpulse = {
   state: () => state, page: () => page, g, sel, settings, session: () => session,
   startSession, quickSession, dailySession, tutorialSession, pressProgram, showPage, showMenu,
-  pauseGame, resumeGame, endGame, audio, IAP, targets, camera, renderer, gloves, scene, arena, headRef, headPos,
+  pauseGame, resumeGame, endGame, exitGame, hintsActive, ui, buttons, audio, IAP, targets, camera, renderer, gloves, scene, arena, headRef, headPos,
 };
