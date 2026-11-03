@@ -48,7 +48,7 @@ Fitness · Rhythm · Action
 
 ## Privacy policy URL
 https://kazisakin.github.io/punchpulse/privacy-policy.html
-(Contact email in privacy.html: kazi.sakin@icloud.com)
+(Contact email in privacy.html: kazisakin@icloud.com)
 
 ## Art files (in this folder)
 | Asset | File | Size |
