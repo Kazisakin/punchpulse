@@ -382,7 +382,11 @@ countdownPanel.mesh.visible = hud.mesh.visible = hintPanel.mesh.visible = false;
 // (Controllers can also press B or Y; the Quest menu button pauses too.)
 const gameBar = new THREE.Group();
 ui.add(gameBar);
-const pauseButton = addButton(gameBar, 0.34, 0.2, 'II  PAUSE', -0.92, 0.42, () => pauseGame(), { color: CSS.dim, z: -2.18 });
+// Left side at eye level, 1 m away: always visible while you play, clear of the score bar,
+// the hint banner and the middle of the target lanes.
+const pauseButton = addButton(gameBar, 0.2, 0.1, 'II  PAUSE', -0.58, 0.08, () => pauseGame(), { color: CSS.text, z: -1.0 });
+ui.updateMatrixWorld(true);
+pauseButton.mesh.lookAt(0, ui.position.y, 0); // tilt it to face the player's eyes
 gameBar.visible = false;
 
 const pauseGroup = new THREE.Group();

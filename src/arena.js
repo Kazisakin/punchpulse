@@ -9,6 +9,13 @@ import { glowTexture, glowSprite } from './gfx.js';
 
 const EQ_BARS = 14; // per side
 const C = (hex) => new THREE.Color(hex);
+// Softer palette: pull every theme colour toward grey and dim it a little (less eye strain in VR)
+const SAT = 0.7, BRIGHT = 0.85;
+function tone(hex) {
+  const c = new THREE.Color(hex);
+  const l = c.r * 0.299 + c.g * 0.587 + c.b * 0.114;
+  return c.setRGB((l + (c.r - l) * SAT) * BRIGHT, (l + (c.g - l) * SAT) * BRIGHT, (l + (c.b - l) * SAT) * BRIGHT);
+}
 
 const THEME_PARAMS = {
   synthwave: {
@@ -62,7 +69,7 @@ export function createArena(scene) {
         float y = vP.y;
         vec3 col = mix(uMid, uTop, smoothstep(0.05, 0.6, y));
         float band = exp(-abs(y - 0.02) * 22.0);
-        col += uHor * band * (0.55 + 0.25 * uPulse);
+        col += uHor * band * (0.38 + 0.12 * uPulse);
         col = mix(col, uTop * 0.6, smoothstep(0.0, -0.15, y));
         gl_FragColor = vec4(col, 1.0);
       }`,
@@ -106,14 +113,14 @@ export function createArena(scene) {
           col *= 0.55 + 0.45 * smoothstep(1.0, -0.4, p.x + p.y * 0.3);
           col *= 0.9 + 0.1 * sin(p.y * 18.0 + uTime * 0.2);
         }
-        col *= 1.0 + 0.25 * uPulse;
+        col *= 0.85 + 0.12 * uPulse;
         gl_FragColor = vec4(col, smoothstep(1.0, 0.97, d));
       }`,
   });
   const sun = new THREE.Mesh(new THREE.PlaneGeometry(22, 22), sunMat);
   sun.position.set(0, 7, -58);
   world.add(sun);
-  const sunGlow = glowSprite(0xff3fa0, 52, 0.55);
+  const sunGlow = glowSprite(0xff3fa0, 46, 0.35);
   sunGlow.material.fog = false;
   sunGlow.position.set(0, 7, -59);
   world.add(sunGlow);
@@ -160,9 +167,9 @@ export function createArena(scene) {
         float fade = exp(-dist * 0.06);
         float line = gridLine(p * 0.8 + vec2(0.0, uTime * 0.6), 1.2);
         vec3 lineCol = mix(uNear, uFar, smoothstep(4.0, 30.0, dist));
-        vec3 col = uBase + lineCol * line * (0.35 + 0.65 * fade) * (0.7 + 0.5 * uPulse);
+        vec3 col = uBase + lineCol * line * (0.3 + 0.5 * fade) * (0.55 + 0.25 * uPulse);
         float r = uBeat * 14.0;
-        col += lineCol * exp(-abs(dist - r) * 3.0) * (1.0 - uBeat) * 0.8;
+        col += lineCol * exp(-abs(dist - r) * 3.0) * (1.0 - uBeat) * 0.4;
         col += uNear * exp(-dist * 2.2) * 0.3;
         gl_FragColor = vec4(col, 1.0);
       }`,
@@ -200,7 +207,7 @@ export function createArena(scene) {
       uniforms: { uColor: { value: C(0) }, uPulse: { value: 0 } },
       vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
       fragmentShader: `uniform vec3 uColor; uniform float uPulse; varying vec2 vUv;
-        void main(){ float a = pow(1.0 - vUv.y, 2.0) * (0.35 + 0.4 * uPulse); gl_FragColor = vec4(uColor * a, a); }`,
+        void main(){ float a = pow(1.0 - vUv.y, 2.0) * (0.16 + 0.16 * uPulse); gl_FragColor = vec4(uColor * a, a); }`,
     });
     beamMats.push(m);
     return m;
@@ -228,7 +235,7 @@ export function createArena(scene) {
   // ---------------------------------------------------------- Music-reactive equalizer bars
   const eqGeo = new THREE.BoxGeometry(0.14, 1, 0.14);
   eqGeo.translate(0, 0.5, 0);
-  const eq = new THREE.InstancedMesh(eqGeo, new THREE.MeshBasicMaterial({ toneMapped: false, transparent: true, opacity: 0.85 }), EQ_BARS * 2);
+  const eq = new THREE.InstancedMesh(eqGeo, new THREE.MeshBasicMaterial({ toneMapped: false, transparent: true, opacity: 0.6 }), EQ_BARS * 2);
   const eqM = new THREE.Matrix4();
   scene.add(eq);
   const eqLevels = new Float32Array(EQ_BARS);
@@ -253,7 +260,7 @@ export function createArena(scene) {
   }
   const dustGeo = new THREE.BufferGeometry();
   dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
-  const dustMat = new THREE.PointsMaterial({ map: glowTexture(), size: 0.06, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false });
+  const dustMat = new THREE.PointsMaterial({ map: glowTexture(), size: 0.05, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending, depthWrite: false });
   const dust = new THREE.Points(dustGeo, dustMat);
   dust.frustumCulled = false;
   scene.add(dust);
@@ -264,36 +271,36 @@ export function createArena(scene) {
   function setTheme(id) {
     theme = THEME_PARAMS[id] || THEME_PARAMS.synthwave;
     const t = theme;
-    skyMat.uniforms.uTop.value.set(t.skyTop);
-    skyMat.uniforms.uMid.value.set(t.skyMid);
-    skyMat.uniforms.uHor.value.set(t.skyHor);
-    sunMat.uniforms.uA.value.set(t.sunA);
-    sunMat.uniforms.uB.value.set(t.sunB);
+    skyMat.uniforms.uTop.value.copy(tone(t.skyTop));
+    skyMat.uniforms.uMid.value.copy(tone(t.skyMid));
+    skyMat.uniforms.uHor.value.copy(tone(t.skyHor));
+    sunMat.uniforms.uA.value.copy(tone(t.sunA));
+    sunMat.uniforms.uB.value.copy(tone(t.sunB));
     sunMat.uniforms.uStripes.value = t.sunStripes;
-    sunGlow.material.color.set(t.sunGlow);
-    mtnA.wire.material.color.set(t.mtnA);
-    mtnB.wire.material.color.set(t.mtnB);
+    sunGlow.material.color.copy(tone(t.sunGlow));
+    mtnA.wire.material.color.copy(tone(t.mtnA));
+    mtnB.wire.material.color.copy(tone(t.mtnB));
     mtnA.group.visible = mtnB.group.visible = t.mountains;
-    floorMat.uniforms.uNear.value.set(t.lineNear);
-    floorMat.uniforms.uFar.value.set(t.lineFar);
-    beams.forEach((b) => b.material.uniforms.uColor.value.set(b.userData.side < 0 ? t.beamL : t.beamR));
-    caps.forEach((c) => c.material.color.set(c.userData.side < 0 ? t.beamL : t.beamR));
-    rings.forEach((r, i) => r.material.color.set(i % 2 ? t.ringA : t.ringB));
-    pad.material.color.set(t.lineNear);
+    floorMat.uniforms.uNear.value.copy(tone(t.lineNear));
+    floorMat.uniforms.uFar.value.copy(tone(t.lineFar));
+    beams.forEach((b) => b.material.uniforms.uColor.value.copy(tone(b.userData.side < 0 ? t.beamL : t.beamR)));
+    caps.forEach((c) => c.material.color.copy(tone(c.userData.side < 0 ? t.beamL : t.beamR)));
+    rings.forEach((r, i) => r.material.color.copy(tone(i % 2 ? t.ringA : t.ringB)));
+    pad.material.color.copy(tone(t.lineNear));
     const col = new THREE.Color();
     for (let i = 0; i < EQ_BARS * 2; i++) {
       const k = i % EQ_BARS;
-      col.setHSL(t.eqFrom + (t.eqTo - t.eqFrom) * (k / EQ_BARS), 1, 0.55);
+      col.setHSL(t.eqFrom + (t.eqTo - t.eqFrom) * (k / EQ_BARS), 0.6, 0.5);
       eq.setColorAt(i, col);
     }
     eq.instanceColor.needsUpdate = true;
-    dustMat.color.set(t.dust);
+    dustMat.color.copy(tone(t.dust));
     starMat.opacity = t.stars;
     applyBackground();
   }
   function applyBackground() {
-    scene.background = mr ? null : new THREE.Color(theme.bg);
-    scene.fog = mr ? null : new THREE.Fog(theme.fog, 12, 48);
+    scene.background = mr ? null : tone(theme.bg);
+    scene.fog = mr ? null : new THREE.Fog(tone(theme.fog), 12, 48);
   }
   // Mixed Reality: hide sky, floor, mountains and beams; keep lane rings, EQ bars and dust
   function setMixedReality(on) {
@@ -312,18 +319,18 @@ export function createArena(scene) {
     skyMat.uniforms.uPulse.value = pulse;
     sunMat.uniforms.uTime.value = t;
     sunMat.uniforms.uPulse.value = pulse;
-    sunGlow.material.opacity = 0.4 + 0.25 * pulse;
+    sunGlow.material.opacity = 0.25 + 0.12 * pulse;
 
     rings.forEach((r, i) => {
       const wave = 0.5 + 0.5 * Math.sin(t * 3 - i * 0.7);
-      r.material.opacity = (0.25 + 0.3 * wave + 0.45 * pulse) * (mr ? 0.6 : 1);
+      r.material.opacity = (0.15 + 0.15 * wave + 0.25 * pulse) * (mr ? 0.6 : 1);
       r.scale.setScalar(1 + pulse * 0.05);
       r.rotation.z = t * 0.15 * (i % 2 ? 1 : -1);
     });
     beamMats.forEach((m) => (m.uniforms.uPulse.value = pulse));
-    pad.material.opacity = 0.6 + 0.4 * pulse;
-    mtnA.wire.material.opacity = 0.35 + 0.3 * pulse;
-    mtnB.wire.material.opacity = 0.35 + 0.3 * pulse;
+    pad.material.opacity = 0.5 + 0.25 * pulse;
+    mtnA.wire.material.opacity = 0.25 + 0.15 * pulse;
+    mtnB.wire.material.opacity = 0.25 + 0.15 * pulse;
 
     for (let k = 0; k < EQ_BARS; k++) {
       let target;
