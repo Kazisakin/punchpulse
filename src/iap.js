@@ -1,6 +1,5 @@
-// "PunchPulse Pro" in-app purchase via Meta's Digital Goods API.
-// Only works when the app is installed from the Meta Horizon Store (incl. ALPHA/BETA channels).
-// Docs: https://developers.meta.com/horizon/documentation/web/ps-iap/
+// Pro unlock via Meta's Digital Goods API (store installs only, including test channels).
+// https://developers.meta.com/horizon/documentation/web/ps-iap/
 import { CONFIG } from './config.js';
 import { Storage } from './storage.js';
 

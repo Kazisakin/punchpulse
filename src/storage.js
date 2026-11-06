@@ -1,5 +1,4 @@
-// Player progress and settings, saved on the headset only (no server, no account).
-// v2 adds settings, daily history, streaks, programs, achievements and lifetime totals.
+// Local save (localStorage). v2 adds settings, history, streaks, programs, achievements.
 const KEY = 'punchpulse_v2';
 const OLD_KEY = 'punchpulse_v1';
 

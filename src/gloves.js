@@ -1,34 +1,29 @@
-// Controllers shown as glowing gloves. Left = red, right = blue.
-// Tracks each glove's world position and speed every frame (for punch detection).
-// Also provides a mouse-driven "desktop glove" for testing without a headset.
+// Gloves for controllers and tracked hands, plus a mouse glove for desktop testing.
+// Tracks position/velocity per frame for punch detection.
 import * as THREE from 'three';
 import { COLORS } from './config.js';
 import { addRimGlow, glowSprite } from './gfx.js';
 
-// Boxing glove, built in "glove space":
-//   -Z = knuckles / striking face, +Y = back of the hand, cuff at the origin (wrist).
-// The right glove's thumb is on -X, the left glove's on +X. Pose/alignment code depends on
-// these conventions — only the look changed.
+// Glove space: -Z = knuckles, +Y = back of hand, origin = wrist.
+// Thumb is on -X for the right glove, +X for the left.
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
-// One smooth sculpted shell: big rounded striking end, flatter back, tapering into the wrist.
+// deformed sphere: padded front, flatter back, tapers to the wrist
 function gloveShellGeometry() {
   const g = new THREE.SphereGeometry(1, 48, 32);
   const p = g.attributes.position;
   const v = new THREE.Vector3();
   for (let i = 0; i < p.count; i++) {
     v.fromBufferAttribute(p, i);
-    // length: long padded front, short back that blends into the cuff
     let z = v.z < 0 ? v.z * 0.098 : v.z * 0.07;
-    // width / height: slightly flat on top and bottom, fuller toward the knuckles
     const front = smooth(0.3, -0.9, v.z);          // 0 at back, 1 at front
     const taper = 1 - 0.16 * smooth(0.1, 1.0, v.z); // narrows toward the wrist
     let x = v.x * 0.07 * taper * (0.94 + 0.08 * front);
     let y = v.y * (v.y > 0 ? 0.064 : 0.06) * taper;
-    // knuckle roll: a soft ridge across the top-front
+    // knuckle ridge
     const ridge = Math.exp(-Math.pow((v.z + 0.55) / 0.22, 2)) * smooth(0.2, 0.8, v.y);
     y += ridge * 0.012;
-    // palm side is a little flatter where the fingers curl in
+    // flatten the palm side
     if (v.y < 0) y *= 1 - 0.18 * smooth(-0.2, -0.9, v.z) * smooth(0, -0.7, v.y);
     p.setXYZ(i, x, y, z - 0.082);
   }
@@ -40,11 +35,10 @@ let SHELL = null;
 function makeGlove(color, hand = 'right') {
   SHELL = SHELL || gloveShellGeometry();
   const group = new THREE.Group();
-  const body = new THREE.Group();          // everything except the halo (squashed on impact)
+  const body = new THREE.Group();          // squashed on impact
   group.add(body);
   const thumbSide = hand === 'left' ? 1 : -1;
 
-  // leather: satin finish, a hint of the glove colour glowing, soft neon rim
   const mat = addRimGlow(
     new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.06, roughness: 0.38, metalness: 0.0, envMapIntensity: 0.7 }),
     color, 0.45, 3.0
@@ -55,7 +49,7 @@ function makeGlove(color, hand = 'right') {
   const shell = new THREE.Mesh(SHELL, mat);
   body.add(shell);
 
-  // thumb: a curved tube hugging the inner side, tip resting against the fist
+  // thumb
   const thumbCurve = new THREE.CatmullRomCurve3([
     new THREE.Vector3(thumbSide * 0.05, -0.022, -0.035),
     new THREE.Vector3(thumbSide * 0.068, -0.02, -0.075),
@@ -71,22 +65,21 @@ function makeGlove(color, hand = 'right') {
   thumbBase.position.copy(thumbCurve.points[0]);
   body.add(thumbBase);
 
-  // thin piping seam around the striking pad
+  // seam
   const seam = new THREE.Mesh(new THREE.TorusGeometry(0.066, 0.0028, 6, 48, Math.PI * 1.15), white);
   seam.position.set(0, 0.002, -0.118);
-  seam.rotation.z = Math.PI * -0.075; // centre the arc over the top of the fist
+  seam.rotation.z = Math.PI * -0.075; // centre arc on top
   seam.scale.set(1.0, 0.95, 1);
   body.add(seam);
 
-  // cuff: flared lathe shape (wrist opening at the back), wrapped by a strap
+  // cuff
   const cuffProfile = [
     [0.042, 0.05], [0.048, 0.046], [0.051, 0.03], [0.052, 0.0], [0.054, -0.025], [0.057, -0.045],
   ].map(([r, z]) => new THREE.Vector2(r, z));
   const cuff = new THREE.Mesh(new THREE.LatheGeometry(cuffProfile, 36), mat);
-  cuff.rotation.x = Math.PI / 2; // lathe axis (Y) -> glove +Z (toward the elbow)
+  cuff.rotation.x = Math.PI / 2; // lathe Y -> glove +Z
   body.add(cuff);
-  // the player's wrist inside the cuff: a short dark hand-wrap sleeve fading toward the elbow,
-  // so you never look into an empty hole
+  // short wrap sleeve so the cuff isn't an empty hole
   const sleeveGeo = new THREE.CylinderGeometry(0.037, 0.04, 0.085, 24, 1, true);
   sleeveGeo.rotateX(Math.PI / 2);
   sleeveGeo.translate(0, 0, 0.085);
@@ -96,7 +89,7 @@ function makeGlove(color, hand = 'right') {
   rim.position.z = 0.049;
   body.add(rim);
 
-  // strap: black band with a white stripe, plus the velcro tab on the back of the hand
+  // strap + velcro tab
   const strap = new THREE.Mesh(new THREE.CylinderGeometry(0.0535, 0.0545, 0.03, 36, 1, true), black);
   strap.rotation.x = Math.PI / 2;
   strap.position.z = 0.008;
@@ -110,7 +103,6 @@ function makeGlove(color, hand = 'right') {
   tab.rotation.x = -0.12;
   body.add(tab);
 
-  // brand mark: a small white chevron on the back of the hand
   const mark = new THREE.Mesh(new THREE.CapsuleGeometry(0.005, 0.03, 4, 8), white);
   mark.rotation.z = Math.PI / 2;
   mark.position.set(0, 0.066, -0.062);
@@ -140,7 +132,7 @@ function makeRay() {
 
 // Joints whose average is the striking surface of a tracked hand (the knuckles)
 const KNUCKLE_JOINTS = ['index-finger-phalanx-proximal', 'middle-finger-phalanx-proximal', 'ring-finger-phalanx-proximal'];
-const MAX_PLAUSIBLE_SPEED = 14; // m/s — faster than this is a tracking glitch, not a punch
+const MAX_PLAUSIBLE_SPEED = 14; // m/s, anything faster is a tracking glitch
 
 /**
  * One state object per input slot (0 and 1). Each slot can be a controller or a tracked
@@ -200,14 +192,14 @@ export function createGloves(renderer, scene) {
     controller.addEventListener('select', () => listeners.select.forEach((fn) => fn(state)));
   }
 
-  // ---------- Desktop glove (mouse) ----------
+  // Desktop glove (mouse)
   const desktop = newState({
     kind: 'mouse', hand: 'any', glove: makeGlove(COLORS.accent), isDesktop: true,
-    reach: 0.27,  // bigger hit area: aiming with a mouse is harder than with your fist
+    reach: 0.27,  // mouse aiming is harder
     boost: 0,     // seconds left of a click/space "punch"
   });
   desktop.glove.visible = false;
-  desktop.glove.scale.setScalar(0.45); // it's close to the camera, keep it small
+  desktop.glove.scale.setScalar(0.45);
   scene.add(desktop.glove);
 
   const tmp = new THREE.Vector3();
@@ -216,9 +208,8 @@ export function createGloves(renderer, scene) {
   const fwd = new THREE.Vector3();
   const quat = new THREE.Quaternion();
   const gripPos = new THREE.Vector3();
-  // Controller gloves are oriented from the pointing ray (its -Z runs along the forearm when you
-  // punch). The grip space's -Z runs along the handle towards the thumb, which made the old glove
-  // point up/sideways. Glove +Y (back of hand) -> ray +X on the right hand / -X on the left.
+  // Orient controller gloves from the target ray, not the grip: grip -Z runs along the handle
+  // (toward the thumb), the ray roughly follows the forearm.
   const ROT_RIGHT = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -Math.PI / 2);
   const ROT_LEFT = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2);
 
@@ -228,11 +219,9 @@ export function createGloves(renderer, scene) {
     h.grip.getWorldPosition(gripPos);
     h.controller.getWorldQuaternion(quat);
     fwd.set(0, 0, -1).applyQuaternion(quat);
-    // glove: wrist sits a little behind the grip so the fist covers the hand holding the controller
     h.glove.position.copy(gripPos).addScaledVector(fwd, -0.05);
     h.glove.quaternion.copy(quat).multiply(h.hand === 'left' ? ROT_LEFT : ROT_RIGHT);
     h.glove.visible = true;
-    // striking point: just in front of the knuckles
     tmp.copy(gripPos).addScaledVector(fwd, 0.06);
     return true;
   }
@@ -341,7 +330,7 @@ export function createGloves(renderer, scene) {
 
   function onSelect(fn) { listeners.select.push(fn); }
 
-  // ---------- Test hook: a fake tracked hand driven by code (used by automated tests) ----------
+  // Fake tracked hand for automated tests
   const mocks = [];
   function injectMockHand(handedness) {
     const root = new THREE.Group();

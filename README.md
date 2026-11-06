@@ -1,54 +1,48 @@
 # PunchPulse
 
-A neon rhythm punch workout for Meta Quest, built with WebXR and Three.js. It runs fully offline, needs no server and has no accounts.
+Rhythm boxing workout for Meta Quest. Punch, uppercut, block and dodge targets that arrive on the beat. Works with hand tracking or controllers, in VR or mixed reality.
 
-## Run locally
+**Play:** https://kazisakin.github.io/punchpulse/ (open in the Quest browser, or on desktop for a mouse preview)
+
+Built with WebXR and Three.js, no game engine. The whole game is static files, so there's no backend: it's hosted on GitHub Pages and packaged for the Meta Horizon Store as a PWA.
+
+## Features
+- Hand tracking: punches are detected from the knuckle joints using velocity, with filtering for tracking glitches
+- Controllers and hands can be swapped mid-session
+- Mixed reality mode (passthrough) and a seated mode
+- Music is generated at runtime with the Web Audio API: 6 phonk tracks, no audio files
+- Target charts are generated from a seed and locked to the BPM, so the daily challenge is the same for everyone
+- Daily challenge, streaks, workout programs, achievements, stats
+- One-time Pro unlock through Meta's Digital Goods API
+- Works offline (service worker), progress saved locally
+
+## Running locally
 ```
 npx serve .
 ```
-Then open http://localhost:3000/?dev=1 in Chrome.
+Open http://localhost:3000. Click "Desktop preview" to play with the mouse (click or Space to punch).
 
-| URL option | What it does |
-|---|---|
-| `?dev=1` | Unlocks Pro content for testing |
-| `&test=1` | Any glove touch counts as a punch (easier in the emulator) |
+For headset testing without a Quest, the Immersive Web Emulator extension works.
 
-To release the game, see **RELEASE_GUIDE.md**.
-
-## How it plays
-- Red targets are for the left hand and blue targets are for the right, arriving on the beat.
-- Score = (100 + on-beat bonus + power bonus) × combo multiplier, up to ×4.
-- 3- and 5-minute workouts are free; 10-minute workouts and the Overdrive track are Pro (in-app purchase).
-- The game pauses automatically when the Meta menu opens or the headset comes off.
-
-## Files
+## Code
 ```
-index.html            page + Enter VR overlay
-manifest.webmanifest  app info for packaging
-sw.js                 offline cache (bump VERSION on each update)
-privacy.html          privacy policy (host it with the game)
-vendor/               Three.js r160 (MIT licence), stored locally so the game works offline
-icons/                app icons
-store/                store art, screenshots, listing text
 src/
-  config.js    gameplay settings: punch speed, target speed, durations, Pro SKU
-  main.js      screens, game loop, input, pause handling, boot
-  arena.js     neon arena
-  gloves.js    controller gloves, speed tracking, haptics, mouse glove
-  targets.js   pooled targets, spawning, hit detection
-  chart.js     beat-locked target patterns
-  audio.js     generated music and sound effects (no audio files)
-  effects.js   hit particles and shockwaves
-  ui.js        in-world buttons and panels
-  storage.js   high scores and stats (saved on the device)
-  iap.js       Pro unlock through Meta's Digital Goods API
+  main.js         scene setup, menus, game loop, XR session handling
+  gloves.js       controller/hand input, glove models, punch velocity
+  targets.js      target pools and hit detection
+  chart.js        seeded chart generator
+  audio.js        procedural music and sound effects
+  arena.js        environment, themes, MR toggle
+  ui.js           canvas-based world-space UI
+  effects.js      hit particles and popups
+  progression.js  programs, daily challenge, achievements
+  storage.js      local save data
+  iap.js          in-app purchase
+  config.js       tuning values
+sw.js             offline cache
 ```
 
-## Status
-- [x] Phase 1–2: setup and scene
-- [x] Phase 3: gameplay
-- [x] Phase 4: game flow, music, high scores
-- [x] Phase 5: pause handling, performance, offline support, privacy policy
-- [x] Store art and listing text
-- [ ] Phase 6: deploy and test on a Quest (see RELEASE_GUIDE.md)
-- [ ] Phase 7: package and submit (see RELEASE_GUIDE.md)
+Three.js r160 is vendored in `vendor/` so the app has no runtime dependencies.
+
+## Performance
+Targets 72 fps on Quest 2: unlit shaders, pooled objects (no allocations during play), instanced meshes for particles, and fake glow with sprites instead of post-processing.

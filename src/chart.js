@@ -1,13 +1,10 @@
-// Builds the list of targets ("notes") for a workout, locked to the music's beat.
-// Same inputs + seed always give the same pattern, so players can improve (and the
-// daily challenge is identical for everyone on a given day).
-//
+// Beat-locked target charts. Seeded, so the daily challenge is the same for everyone.
 // Note types:
-//   punch  — normal target for one hand (hand: 'left' | 'right')
-//   upper  — uppercut: must be hit with an upward punch
-//   block  — guard: both fists up in front of the face as it arrives (hand: 'both')
-//   duck   — horizontal wall at head height: duck under it (standing only)
-//   leanL / leanR — side wall: lean your head left / right (standing only)
+//   punch  - normal target for one hand (hand: 'left' | 'right')
+//   upper  - uppercut: must be hit with an upward punch
+//   block  - guard: both fists up in front of the face as it arrives (hand: 'both')
+//   duck   - horizontal wall at head height: duck under it (standing only)
+//   leanL / leanR - side wall: lean your head left / right (standing only)
 import { CONFIG } from './config.js';
 
 export function rng(seed) {
@@ -63,7 +60,7 @@ export function generateChart({ track, durationSec, difficulty, seated = false, 
       if (time < earliest || time > endTime || time < blockedUntil) continue;
 
       const r = rand();
-      // --- dodge walls (standing only, on whole beats) ---
+      // Dodge walls (standing only, on whole beats)
       if (specialsOn && !seated && Number.isInteger(b) && r < d.wall) {
         const kind = rand();
         const type = kind < 0.4 ? 'duck' : kind < 0.7 ? 'leanL' : 'leanR';
@@ -71,7 +68,7 @@ export function generateChart({ track, durationSec, difficulty, seated = false, 
         blockedUntil = time + spb * 2;
         continue;
       }
-      // --- block (both fists up) ---
+      // Block (both fists up)
       if (specialsOn && Number.isInteger(b) && r < d.wall + d.block) {
         notes.push({ time, type: 'block', hand: 'both', x: 0, yOff: seated ? -0.12 : -0.15 });
         blockedUntil = time + spb * 1.5;

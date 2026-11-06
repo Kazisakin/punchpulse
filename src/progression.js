@@ -3,7 +3,7 @@ import { TRACKS, trackById } from './audio.js';
 import { difficultyById } from './config.js';
 import { Storage, dateKey } from './storage.js';
 
-// ---------------------------------------------------------------- Programs
+// Programs
 const S = (track, minutes, difficulty) => ({ track, minutes, difficulty });
 
 export const PROGRAMS = [
@@ -44,7 +44,7 @@ export function nextProgramSession(program) {
   return { index: done, track: trackById(s.track), minutes: s.minutes, difficulty: difficultyById(s.difficulty) };
 }
 
-// ---------------------------------------------------------------- Daily challenge
+// Daily challenge
 // Same for everyone on a given day: free tracks only, harder on weekends.
 export function dailyChallenge(date = new Date()) {
   const key = dateKey(date);
@@ -60,7 +60,7 @@ export function dailyChallenge(date = new Date()) {
   };
 }
 
-// ---------------------------------------------------------------- Achievements
+// Achievements
 // check(ctx): ctx = { totals, streak, run, session, achievements }
 export const ACHIEVEMENTS = [
   { id: 'first',     name: 'First Round',      desc: 'Finish your first workout',        check: (c) => c.totals.workouts >= 1 },

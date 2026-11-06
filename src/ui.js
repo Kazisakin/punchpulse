@@ -1,6 +1,4 @@
-// In-world UI drawn on canvas textures (no font files needed).
-// One font, one card style and one button style everywhere so every screen looks the same.
-// Buttons can be poked/punched, pointed at + trigger/pinch, or clicked with the mouse.
+// Canvas-texture UI. Buttons work with poke/punch, ray + trigger/pinch, or mouse.
 import * as THREE from 'three';
 import { CSS } from './config.js';
 
@@ -45,7 +43,7 @@ export function roundRect(c, x, y, w, h, r) {
   c.closePath();
 }
 
-// The one card style used by every panel: dark glass, thin coloured border, soft top highlight.
+// shared panel style
 export function card(c, W, H, { border = CSS.accent, fill = CSS.panel, radius = 34, line = 4 } = {}) {
   const p = line + 2;
   roundRect(c, p, p, W - p * 2, H - p * 2, radius);
@@ -164,7 +162,7 @@ export class Button extends Panel {
   }
 }
 
-// ---------- tiny tween helper for panels: scale + fade pop ----------
+// Tiny tween helper for panels: scale + fade pop
 const tweens = new Map(); // mesh -> tween
 export function pop(mesh, { delay = 0, dur = 0.32, from = 0.85 } = {}) {
   if (mesh.userData.baseScale === undefined) mesh.userData.baseScale = mesh.scale.x;

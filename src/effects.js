@@ -1,5 +1,4 @@
-// Hit effects: spark burst, flying shards, shockwave ring, flash, and judgement popups
-// (PERFECT / GREAT / GOOD / MISS). Everything pooled — no allocations during play.
+// Hit sparks, shards, shockwaves and judgement popups. All pooled.
 import * as THREE from 'three';
 import { glowTexture, glowSprite } from './gfx.js';
 
@@ -30,7 +29,7 @@ export class Effects {
   constructor(scene) {
     this.scene = scene;
 
-    // ---------- spark bursts + shockwave + flash ----------
+    // Spark bursts + shockwave + flash
     this.bursts = [];
     const ringGeo = new THREE.RingGeometry(0.12, 0.13, 48);
     for (let i = 0; i < BURSTS; i++) {
@@ -57,7 +56,7 @@ export class Effects {
     }
     this.bi = 0;
 
-    // ---------- shards (one instanced mesh for all) ----------
+    // Shards (one instanced mesh for all)
     const shardGeo = new THREE.TetrahedronGeometry(0.035);
     this.shards = new THREE.InstancedMesh(shardGeo, new THREE.MeshBasicMaterial({ toneMapped: false }), BURSTS * SHARDS_PER);
     this.shards.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -73,7 +72,7 @@ export class Effects {
     this._q = new THREE.Quaternion();
     this._s = new THREE.Vector3();
 
-    // ---------- judgement popups ----------
+    // Judgement popups
     this.popupTex = {
       PERFECT: popupTexture('PERFECT', '#ffd23d'),
       GREAT: popupTexture('GREAT', '#3dff9a'),

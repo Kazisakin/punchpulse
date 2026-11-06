@@ -1,7 +1,5 @@
-// Targets fly toward the player on the beat. Pooled (no allocations mid-game) for steady FPS.
-//   punch / upper — glowing orbs (uppercuts carry an up-arrow and need an upward punch)
-//   block         — violet guard bar: both fists up in front of your face as it arrives
-//   duck / leanL / leanR — dodge walls, judged by your real head position as they pass you
+// Pooled targets: orbs (punch/upper), guard bars (block), walls (duck/lean).
+// Walls are judged by head position when they pass.
 import * as THREE from 'three';
 import { CONFIG, COLORS } from './config.js';
 import { fresnelMaterial, glowSprite } from './gfx.js';
@@ -42,7 +40,7 @@ export class TargetManager {
     this.hitRadius = CONFIG.HIT_RADIUS;
 
     const R = CONFIG.TARGET_RADIUS;
-    // ---------------- orbs (punch + uppercut) ----------------
+    // Orbs (punch + uppercut)
     const orbGeo = new THREE.IcosahedronGeometry(R, 3);
     const coreGeo = new THREE.IcosahedronGeometry(R * 0.45, 1);
     const ringGeo = new THREE.TorusGeometry(R * 1.3, 0.007, 6, 48);
@@ -80,7 +78,7 @@ export class TargetManager {
       this.orbs.push({ root, orb, core, ring, trail, halo, arrow, note: null, alive: false });
     }
 
-    // ---------------- block guard bars ----------------
+    // Block guard bars
     const barGeo = new THREE.CapsuleGeometry(0.06, 0.34, 8, 20);
     barGeo.rotateZ(Math.PI / 2);
     const fistRingGeo = new THREE.TorusGeometry(0.075, 0.008, 6, 36);
@@ -103,7 +101,7 @@ export class TargetManager {
       this.blocks.push({ root, timing, halo, note: null, alive: false, done: false });
     }
 
-    // ---------------- dodge walls ----------------
+    // Dodge walls
     this.wallTex = {
       duck: labelTexture('DUCK', '#ffa52b'),
       leanL: labelTexture('◀ LEAN', '#ffa52b'),

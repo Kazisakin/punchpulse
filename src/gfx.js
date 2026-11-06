@@ -1,6 +1,4 @@
-// Shared graphics helpers: glow textures and cheap glowing shaders.
-// Everything here is designed for mobile VR GPUs (Quest 2): no post-processing,
-// glow is faked with additive sprites and fresnel rim shaders.
+// Glow helpers. No post-processing on Quest, so glow = additive sprites + fresnel rims.
 import * as THREE from 'three';
 
 let glowTex = null;

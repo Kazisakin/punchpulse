@@ -1,4 +1,4 @@
-// PunchPulse — main game: scene setup, menus, sessions, game loop, input, XR session handling.
+// PunchPulse: scene, menus, sessions, game loop, input and XR session handling.
 import * as THREE from 'three';
 import { CONFIG, COLORS, CSS, DIFFICULTIES, THEMES, difficultyById } from './config.js';
 import { createArena } from './arena.js';
@@ -14,9 +14,7 @@ import { Panel, Button, gloveTouchesButton, buttonNormal, roundRect, text, fitTe
 import { glowSprite } from './gfx.js';
 import { RoomEnvironment } from '../vendor/RoomEnvironment.js';
 
-// =====================================================================
 // Scene, camera, renderer
-// =====================================================================
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.05, 100);
 camera.position.set(0, 1.6, 0);
@@ -47,17 +45,13 @@ const audio = new AudioEngine();
 const settings = Storage.settings;
 arena.setTheme(settings.theme);
 
-// =====================================================================
-// UI building blocks. The UI group sits at the player's eye height; in menus it also turns to
-// face wherever the player is looking (like the Quest home menu).
-// =====================================================================
+// UI (follows head height; in menus it also turns to face the player)
 const ui = new THREE.Group();
 ui.position.y = 1.6;
 scene.add(ui);
 let headY = 1.6;
 
-// Menu layout: buttons live on a plane 0.75 m in front of the eyes (arm's reach for a poke,
-// comfortable to point at), centred slightly above eye level; info panels sit just behind it.
+// buttons sit on a plane 0.75 m out (pokeable, easy to point at), panels just behind
 const MENU_Z = -0.75, MENU_Y = 0.13, MENU_SCALE = 1.1;
 function nearPlane(parent) {
   const p = new THREE.Group();
@@ -85,16 +79,16 @@ const ROW = [0.04, -0.11, -0.26, -0.41]; // button rows (relative to head height
 const COL3 = [-0.27, 0, 0.27];
 const BW = 0.24, BH = 0.12;
 
-let uiLock = 0; // short input lock after every screen change (no accidental double presses)
+let uiLock = 0; // short input lock after every screen change to avoid double presses
 const lockUI = () => { uiLock = 0.45; };
 
-// ---------- shared menu panels ----------
+// Shared menu panels
 const menu = new THREE.Group();
 ui.add(menu);
 const TITLE_Y = 0.5, TITLE_Z = -1.0;
 const titlePanel = addPanel(menu, 1.1, 0.3, 0, TITLE_Y, TITLE_Z);
 const menuNear = nearPlane(menu);
-// one glass card behind every menu's buttons, so each screen reads as one clean block
+// backing card behind the buttons
 const backCard = addPanel(menuNear, 0.98, 0.675, 0, -0.2175, -0.02);
 backCard.mesh.renderOrder = 9;
 backCard.draw((c, W, H) => card(c, W, H, { border: 'rgba(0,229,255,0.35)', fill: 'rgba(6,9,24,0.72)', radius: 40, line: 4 }));
@@ -115,7 +109,7 @@ function drawTitle(title, line2 = '', line3 = '', color = '#ffffff') {
   });
 }
 
-// ---------- pages ----------
+// Pages
 const pages = {};
 function makePage(name) {
   const g = nearPlane(menu);
@@ -125,7 +119,7 @@ function makePage(name) {
 }
 let page = 'home';
 
-// ---------------- HOME ----------------
+// HOME
 const home = makePage('home');
 const homeBtns = {
   quick: addButton(home, BW, BH, 'QUICK PLAY', COL3[0], ROW[0], () => showPage('quick'), { color: CSS.accent }),
@@ -138,7 +132,7 @@ const homeBtns = {
   exit: addButton(home, 0.24, 0.1, 'EXIT', 0, ROW[3], () => exitGame(), { color: CSS.left }),
 };
 
-// ---------------- QUICK PLAY ----------------
+// QUICK PLAY
 const quick = makePage('quick');
 const sel = { minutes: 3, trackIndex: 0 };
 const durationButtons = CONFIG.DURATIONS.map((d, i) =>
@@ -165,18 +159,18 @@ function cycleTrack(dir) {
   refreshQuick();
 }
 
-// ---------------- PROGRAMS ----------------
+// PROGRAMS
 const programsPage = makePage('programs');
 const programButtons = PROGRAMS.map((p, i) =>
   addButton(programsPage, 0.78, 0.12, p.name, 0, ROW[i], () => pressProgram(p), { color: CSS.green })
 );
 addButton(programsPage, 0.24, 0.1, 'BACK', 0, ROW[3] - 0.01, () => showPage('home'), { color: CSS.dim });
 
-// ---------------- STATS ----------------
+// STATS
 const statsPage = makePage('stats');
 addButton(statsPage, 0.24, 0.1, 'BACK', 0, ROW[3] - 0.03, () => showPage('home'), { color: CSS.dim });
 
-// ---------------- SETTINGS ----------------
+// SETTINGS
 const settingsPage = makePage('settings');
 const postureButtons = ['standing', 'seated'].map((p, i) =>
   addButton(settingsPage, 0.3, BH, p.toUpperCase(), i ? 0.17 : -0.17, ROW[0], () => {
@@ -198,12 +192,12 @@ const hintsButton = addButton(settingsPage, 0.3, 0.1, 'HINTS', -0.17, ROW[3] - 0
 }, { color: CSS.gold });
 addButton(settingsPage, 0.3, 0.1, 'BACK', 0.17, ROW[3] - 0.01, () => showPage('home'), { color: CSS.dim });
 
-// Hints show during a player's first real workout, or always if they switch them on.
+// hints: on for the first workout, then whatever the player picked
 function hintsActive() {
   return settings.hints === 'on' || (settings.hints !== 'off' && !settings.firstRunDone);
 }
 
-// ---------- refresh functions ----------
+// Refresh functions
 function refreshHome() {
   const streak = Storage.streak;
   const daily = dailyChallenge();
@@ -344,7 +338,7 @@ function showPage(name) {
   backCard.mesh.visible = name !== 'stats';
   ({ home: refreshHome, quick: refreshQuick, programs: refreshPrograms, stats: refreshStats, settings: refreshSettings })[name]();
   if (state === 'menu') audio.sfxClick();
-  // entrance animation: card + title pop, buttons pop in one after another
+  // pop-in animation
   if (name === 'stats') pop(statsPanel.mesh, { from: 0.9 });
   else { pop(titlePanel.mesh, { from: 0.92 }); pop(backCard.mesh, { from: 0.96, dur: 0.25 }); }
   appearButtons(pages[name]);
@@ -373,20 +367,17 @@ async function askPro(fromButton) {
   showPage(page);
 }
 
-// ---------- in-game panels ----------
+// In-game panels
 const countdownPanel = addPanel(ui, 0.6, 0.6, 0, 0.1, -1.5);
 const hud = addPanel(ui, 1.4, 0.26, 0, 0.42, -2.2);
 const hintPanel = addPanel(ui, 1.8, 0.2, 0, 0.7, -2.2);
 countdownPanel.mesh.visible = hud.mesh.visible = hintPanel.mesh.visible = false;
-// Always-visible pause button next to the HUD: point at it and pinch / pull the trigger.
-// (Controllers can also press B or Y; the Quest menu button pauses too.)
 const gameBar = new THREE.Group();
 ui.add(gameBar);
-// Left side at eye level, 1 m away: always visible while you play, clear of the score bar,
-// the hint banner and the middle of the target lanes.
+// pause button: left of view, 1 m out, away from the HUD and target lanes. Ray-select or B/Y.
 const pauseButton = addButton(gameBar, 0.2, 0.1, 'II  PAUSE', -0.58, 0.08, () => pauseGame(), { color: CSS.text, z: -1.0 });
 ui.updateMatrixWorld(true);
-pauseButton.mesh.lookAt(0, ui.position.y, 0); // tilt it to face the player's eyes
+pauseButton.mesh.lookAt(0, ui.position.y, 0); // face the eyes
 gameBar.visible = false;
 
 const pauseGroup = new THREE.Group();
@@ -411,9 +402,7 @@ const againButton = addButton(resultsNear, BW, BH, 'AGAIN', -0.14, -0.33, () => 
 addButton(resultsNear, BW, BH, 'MENU', 0.14, -0.33, () => showMenu(), { color: CSS.accent });
 resultsGroup.visible = false;
 
-// =====================================================================
 // Sessions
-// =====================================================================
 function baseSession() {
   return { mode: settings.mode, posture: settings.posture };
 }
@@ -438,9 +427,7 @@ function pressProgram(p) {
   startSession({ ...baseSession(), kind: 'program', programId: p.id, programDay: n.index + 1, track: n.track, minutes: n.minutes, difficulty: n.difficulty, label: `${p.name} · Day ${n.index + 1}` });
 }
 
-// =====================================================================
 // Game state
-// =====================================================================
 let state = 'menu'; // menu | countdown | playing | paused | results
 let session = null;
 let lastSession = null;
@@ -475,8 +462,7 @@ function setScreen(s) {
   lockUI();
 }
 
-// Menus face the player: snap in front of them when a screen opens, then follow lazily if they
-// turn away (more than ~35°) or walk off. During play the UI stays fixed to the arena's front.
+// menus snap in front of the player, then lazily follow if they turn (>35°) or walk. Fixed during play.
 const fwdTmp = new THREE.Vector3();
 let uiYaw = 0;
 function headYaw() {
@@ -629,9 +615,7 @@ function endGame() {
   setScreen('results');
 }
 
-// =====================================================================
 // Gameplay
-// =====================================================================
 const minSpeed = (gl) => gl.isDesktop ? CONFIG.DESKTOP_MIN_PUNCH_SPEED : gl.kind === 'hand' ? CONFIG.HAND_MIN_PUNCH_SPEED : CONFIG.MIN_PUNCH_SPEED;
 const mult = () => 1 + Math.min(3, Math.floor(g.combo / 10));
 
@@ -697,7 +681,7 @@ function updatePlaying(dt) {
   if (t >= g.duration) endGame();
 }
 
-// ---------- tutorial hints ----------
+// Tutorial hints
 const HINTS = {
   'punch-left': 'Punch RED targets with your LEFT fist — on the beat',
   'punch-right': 'Punch BLUE targets with your RIGHT fist',
@@ -708,7 +692,7 @@ const HINTS = {
   'leanL-none': 'LEAN LEFT to dodge the wall',
   'leanR-none': 'LEAN RIGHT to dodge the wall',
 };
-// first-workout hints (Quick Play / Daily / Programs): one per move type, the first time it appears
+// first-workout hints, one per move type
 const FIRST_HINTS = {
   punch: 'RED = LEFT fist  •  BLUE = RIGHT fist  •  hit as the ring closes',
   upper: 'ARROW target = UPPERCUT: swing your fist UP from below',
@@ -766,7 +750,7 @@ function updateTutorialHint(t) {
   if (upcoming.time - t < 3.2) drawHint(HINTS[`${upcoming.type}-${upcoming.hand}`] || '');
 }
 
-// ---------- HUD ----------
+// HUD
 function drawHud() {
   const t = state === 'playing' || state === 'paused' ? audio.songTime : 0;
   const left = Math.max(0, g.duration - t);
@@ -804,9 +788,7 @@ function updateCountdown() {
   if (remaining <= 0) startGame();
 }
 
-// =====================================================================
 // Input: punching / poking buttons, pointer + trigger or pinch, mouse
-// =====================================================================
 const touching = new Map(); // button -> Set of gloves inside it
 
 function isVisibleInTree(obj) {
@@ -824,7 +806,7 @@ function updateButtonTouches() {
       const inside = visible && gloveTouchesButton(gl, b, gl.kind === 'hand' ? 0.1 : 0.08);
       if (inside && !set.has(gl)) {
         set.add(gl);
-        // must move INTO the button (whichever way the menu faces), and not right after a screen change
+        // has to move into the button, and not right after a screen change
         const into = -gl.velocity.dot(buttonNormal(b));
         if (uiLock <= 0 && into > CONFIG.BUTTON_PRESS_MIN_FORWARD && b.press()) gloves.buzz(gl, 0.5, 40);
       } else if (!inside) set.delete(gl);
@@ -860,8 +842,7 @@ gloves.onSelect((ctrl) => {
   if (pressFromRay()) gloves.buzz(ctrl, 0.5, 40);
 });
 
-// Pointer feedback: the button under each ray glows and grows, a dot marks the exact spot, and the
-// ray stops at the button. During play the ray only appears while aiming at the PAUSE button.
+// ray hover + cursor dot. In game the ray only shows when it's on the pause button.
 const cursors = gloves.inputs.map(() => {
   const s = glowSprite(0xffffff, 0.035, 0.95);
   s.renderOrder = 20; s.material.depthTest = false; s.visible = false;
@@ -910,7 +891,7 @@ function exitGame() {
   setTimeout(() => { try { window.close(); } catch { /* not allowed in a normal tab */ } }, 300);
 }
 
-// ---------- mouse (desktop preview) ----------
+// Mouse (desktop preview)
 const mouse = new THREE.Vector2();
 const punchPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -CONFIG.HIT_PLANE_Z);
 const planeHit = new THREE.Vector3();
@@ -944,9 +925,7 @@ function desktopPunch() {
 }
 setInterval(() => { if (mouseHeld && state === 'playing') gloves.desktop.boost = 0.1; }, 50);
 
-// =====================================================================
 // Head tracking, pause when headset removed / system menu opened
-// =====================================================================
 function measureHead(snap = false) {
   if (renderer.xr.isPresenting) {
     renderer.xr.getCamera().getWorldPosition(headPos);
@@ -960,9 +939,7 @@ function measureHead(snap = false) {
   ui.position.y = headY;
 }
 
-// =====================================================================
 // XR sessions: VR or Mixed Reality (passthrough), hands or controllers
-// =====================================================================
 const overlay = document.getElementById('overlay');
 const vrBtn = document.getElementById('enter-vr');
 const mrBtn = document.getElementById('enter-mr');
@@ -1007,7 +984,7 @@ renderer.xr.addEventListener('sessionstart', () => {
     if (s.visibilityState !== 'visible') pauseGame();
   });
   gloves.desktop.glove.visible = false;
-  ui.userData.placedOnce = false; // re-centre the menu in front of the player once the head pose arrives
+  ui.userData.placedOnce = false; // recentre menu once we have a head pose
   if (state === 'menu') showPage(page);
 });
 renderer.xr.addEventListener('sessionend', async () => {
@@ -1045,9 +1022,7 @@ deskBtn.addEventListener('click', () => { audio.unlock(); overlay.classList.add(
   if (state === 'menu' && page === 'settings') refreshSettings();
 })();
 
-// =====================================================================
 // Main loop
-// =====================================================================
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
@@ -1071,7 +1046,7 @@ renderer.setAnimationLoop(() => {
   updatePointers();
   pollPauseButtons();
   placeUI(false, dt);
-  titlePanel.mesh.position.y = TITLE_Y + Math.sin(clock.elapsedTime * 1.2) * 0.006; // gentle float
+  titlePanel.mesh.position.y = TITLE_Y + Math.sin(clock.elapsedTime * 1.2) * 0.006;
 
   buttons.forEach((b) => b.update(dt));
   updateTweens(dt);
@@ -1093,14 +1068,12 @@ renderer.setAnimationLoop(() => {
   renderer.render(scene, camera);
 });
 
-// =====================================================================
 // Boot
-// =====================================================================
 setScreen('menu');
 showPage('home');
 IAP.init().finally(() => { if (state === 'menu') showPage(page); });
 
-// Offline cache: only on the live site. On localhost it would serve stale code while you edit.
+// no service worker on localhost (stale cache while developing)
 const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
 if ('serviceWorker' in navigator) {
   if (isLocal) {

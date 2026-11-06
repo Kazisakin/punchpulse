@@ -1,14 +1,7 @@
-// All sound is generated in code with the Web Audio API:
-// no music files, no licensing issues, tiny download, works offline.
-//
-// The soundtrack is ORIGINAL phonk-style music (not copies of any real songs): an 808 cowbell
-// hook drenched in reverb, a distorted 808 bass that slides between notes, hard kicks with
-// sidechain "pump", claps, fast hi-hat rolls and (on the harder tracks) a gritty drift lead.
-//
-// Notation (4 bars = 64 sixteenth-steps):
-//   seq('0 . 3 . | ...')  -> semitones above the root ('.' = rest, '|' is just a bar marker)
-//   hits('0@0 3@10 | ...') -> 808 notes: note@step within each bar
-// cowA plays for 8 bars, then cowB (the variation) for 8 bars, and so on.
+// Procedural phonk soundtrack + SFX, all Web Audio (no audio files).
+// seq(): 64 steps of semitone offsets, '.' = rest, '|' = bar line
+// hits(): 808 notes as note@step per bar
+// cowA plays 8 bars, then cowB 8 bars.
 const seq = (str) => {
   const out = str.split(/[\s|]+/).filter(Boolean).map((t) => (t === '.' ? null : Number(t)));
   while (out.length < 64) out.push(null);
@@ -113,7 +106,7 @@ export class AudioEngine {
       const comp = this.ctx.createDynamicsCompressor();
       comp.threshold.value = -16;
       comp.knee.value = 6;
-      comp.ratio.value = 12;          // acts as a limiter so the loud phonk tracks never clip
+      comp.ratio.value = 12;          // basically a limiter
       comp.attack.value = 0.002;
       comp.release.value = 0.15;
       this.master.connect(comp).connect(this.ctx.destination);
@@ -128,7 +121,7 @@ export class AudioEngine {
       this.analyser.smoothingTimeConstant = 0.6;
       this.musicBus.connect(this.analyser);
 
-      // 808 bus: soft-clip distortion + lowpass for that saturated phonk bass
+      // 808 bus: tanh soft clip + lowpass
       this.bassBus = this.ctx.createGain();
       this.bassBus.gain.value = 0.62;
       const shaper = this.ctx.createWaveShaper();
@@ -141,10 +134,10 @@ export class AudioEngine {
       this.bassFilter.frequency.value = 1400;
       this.bassBus.connect(shaper).connect(this.bassFilter).connect(this.musicBus);
 
-      // "pump" bus: melody, pads and hats duck on every kick (sidechain feel)
+      // sidechain bus (ducks on each kick)
       this.pumpBus = this.ctx.createGain();
       this.pumpBus.connect(this.musicBus);
-      // reverb send (generated impulse response, ~1.6 s dark hall) for the cowbell and lead
+      // reverb send, generated 1.6 s IR
       this.reverb = this.ctx.createConvolver();
       const irLen = Math.floor(this.ctx.sampleRate * 1.6);
       const ir = this.ctx.createBuffer(2, irLen, this.ctx.sampleRate);
@@ -225,9 +218,9 @@ export class AudioEngine {
     const s = step % 16;
     const bar = Math.floor(step / 16);
     const s64 = step % 64;
-    const intro = bar < 2;                             // hook + hats first, then the drop
-    const breakdown = bar % 16 === 15;                 // one stripped-back bar every 16
-    const fill = bar % 4 === 3;                        // hi-hat roll + extra kick at the end of every 4 bars
+    const intro = bar < 2;                             // no drums for 2 bars
+    const breakdown = bar % 16 === 15;
+    const fill = bar % 4 === 3;
     const sectionB = !intro && Math.floor(bar / 8) % 2 === 1;
 
     if (!intro && !breakdown && tr.kick[s] === 'x') { this.kick(t); this.pump(t); }
@@ -238,14 +231,13 @@ export class AudioEngine {
     } else if (tr.hat[s] === 'x') this.hat(t, s % 4 === 2 ? 0.12 : 0.07);
     if (!intro && s % 8 === 4) this.openHat(t);
 
-    // distorted 808 that slides into each new note and rings until the next one
+    // 808 rings until the next note
     const bn = tr.b808[s64];
     if (!intro && bn !== null) {
       let len = 1;
       while (len < 12 && tr.b808[(s64 + len) % 64] === null) len++;
       this.bass808(t, midiToHz(tr.root + bn), stepDur * len * (breakdown ? 0.5 : 1));
     }
-    // cowbell hook (A for 8 bars, then the B variation)
     const cn = (sectionB ? tr.cowB : tr.cowA)[s64];
     if (cn !== null) {
       this.cowbell(t, midiToHz(tr.root + 36 + cn), breakdown ? 0.07 : 0.1);
@@ -264,7 +256,7 @@ export class AudioEngine {
     g.linearRampToValueAtTime(1, t + 0.18);
   }
 
-  // ---------- instruments ----------
+  // Instruments
   kick(t) {
     const o = this.ctx.createOscillator();
     const g = this.ctx.createGain();
@@ -374,7 +366,7 @@ export class AudioEngine {
     o.start(t); o.stop(t + dur + 0.05);
   }
 
-  // ---------- sound effects ----------
+  // Sound effects
   sfxHit(strength = 1) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;

@@ -39,8 +39,7 @@ export const CONFIG = {
   ],
 };
 
-// speed: m/s toward player · density: how busy the chart is · specials: chance per beat
-// for uppercut / block / wall · hitBonus: extra hit radius (forgiveness)
+// speed in m/s, density = notes per beat, upper/block/wall = chance per beat, hitBonus = extra radius
 export const DIFFICULTIES = [
   { id: 'easy',   name: 'EASY',   pro: false, speed: 5.5, density: 0.55, doubles: 0.0,  upper: 0.06, block: 0.03, wall: 0.035, hitBonus: 0.05 },
   { id: 'normal', name: 'NORMAL', pro: false, speed: 7.0, density: 0.8,  doubles: 0.25, upper: 0.10, block: 0.05, wall: 0.06,  hitBonus: 0.02 },

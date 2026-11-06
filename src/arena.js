@@ -1,15 +1,12 @@
-// Arena: sky gradient + stars + sun/planet + wireframe mountains + shader floor with a beat
-// wave, light beams, music-reactive equalizer bars and floating dust.
-// Three themes (Synthwave / Ocean / Deep Space) and a Mixed Reality mode that hides the
-// world so the player's real room shows through passthrough.
-// All unlit / cheap shaders so it holds 72+ FPS on Quest 2.
+// Arena: sky, sun, mountains, grid floor, beams and EQ bars.
+// MR mode hides the world so passthrough shows. Unlit shaders only (Quest 2 budget).
 import * as THREE from 'three';
 import { COLORS } from './config.js';
 import { glowTexture, glowSprite } from './gfx.js';
 
 const EQ_BARS = 14; // per side
 const C = (hex) => new THREE.Color(hex);
-// Softer palette: pull every theme colour toward grey and dim it a little (less eye strain in VR)
+// desaturate + dim theme colours a bit
 const SAT = 0.7, BRIGHT = 0.85;
 function tone(hex) {
   const c = new THREE.Color(hex);
@@ -58,7 +55,7 @@ export function createArena(scene) {
   key.position.set(1, 4, 3);
   scene.add(key);
 
-  // ---------------------------------------------------------- Sky dome
+  // Sky dome
   const skyMat = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false, toneMapped: false,
     uniforms: { uPulse: { value: 0 }, uTop: { value: C(0) }, uMid: { value: C(0) }, uHor: { value: C(0) } },
@@ -78,7 +75,7 @@ export function createArena(scene) {
   sky.renderOrder = -10;
   world.add(sky);
 
-  // ---------------------------------------------------------- Stars
+  // Stars
   const starMat = new THREE.PointsMaterial({ color: 0xcfd8ff, size: 2, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.8, depthWrite: false });
   {
     const n = 900, pos = new Float32Array(n * 3);
@@ -92,7 +89,7 @@ export function createArena(scene) {
     world.add(new THREE.Points(g, starMat));
   }
 
-  // ---------------------------------------------------------- Sun / planet
+  // Sun / planet
   const sunMat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, fog: false, toneMapped: false,
     uniforms: { uTime: { value: 0 }, uPulse: { value: 0 }, uA: { value: C(0) }, uB: { value: C(0) }, uStripes: { value: 1 } },
@@ -125,7 +122,7 @@ export function createArena(scene) {
   sunGlow.position.set(0, 7, -59);
   world.add(sunGlow);
 
-  // ---------------------------------------------------------- Wireframe mountains
+  // Wireframe mountains
   function mountains(z, height, seed) {
     const geo = new THREE.PlaneGeometry(140, 18, 56, 6);
     const p = geo.attributes.position;
@@ -150,7 +147,7 @@ export function createArena(scene) {
   const mtnB = mountains(-40, 8, 4.1);
   mtnB.group.position.y = -0.1;
 
-  // ---------------------------------------------------------- Floor with glowing grid + beat wave
+  // Floor with glowing grid + beat wave
   const floorMat = new THREE.ShaderMaterial({
     toneMapped: false,
     uniforms: { uBeat: { value: 0 }, uPulse: { value: 0 }, uTime: { value: 0 }, uNear: { value: C(0) }, uFar: { value: C(0) }, uBase: { value: C(0x05020f) } },
@@ -187,7 +184,7 @@ export function createArena(scene) {
   pad.position.y = 0.006;
   scene.add(pad);
 
-  // ---------------------------------------------------------- Tunnel rings (kept in MR: they frame the lane)
+  // Tunnel rings (kept in MR: they frame the lane)
   const rings = [];
   for (let i = 0; i < 7; i++) {
     const ring = new THREE.Mesh(
@@ -199,7 +196,7 @@ export function createArena(scene) {
     rings.push(ring);
   }
 
-  // ---------------------------------------------------------- Light beams
+  // Light beams
   const beamMats = [];
   const beamMat = () => {
     const m = new THREE.ShaderMaterial({
@@ -232,7 +229,7 @@ export function createArena(scene) {
     }
   }
 
-  // ---------------------------------------------------------- Music-reactive equalizer bars
+  // Music-reactive equalizer bars
   const eqGeo = new THREE.BoxGeometry(0.14, 1, 0.14);
   eqGeo.translate(0, 0.5, 0);
   const eq = new THREE.InstancedMesh(eqGeo, new THREE.MeshBasicMaterial({ toneMapped: false, transparent: true, opacity: 0.6 }), EQ_BARS * 2);
@@ -250,7 +247,7 @@ export function createArena(scene) {
     eq.instanceMatrix.needsUpdate = true;
   }
 
-  // ---------------------------------------------------------- Floating dust
+  // Floating dust
   const dustN = 220;
   const dustPos = new Float32Array(dustN * 3);
   const dustSpeed = new Float32Array(dustN);
@@ -265,7 +262,7 @@ export function createArena(scene) {
   dust.frustumCulled = false;
   scene.add(dust);
 
-  // ---------------------------------------------------------- Themes & MR
+  // Themes & MR
   let theme = THEME_PARAMS.synthwave;
   let mr = false;
   function setTheme(id) {
@@ -311,7 +308,7 @@ export function createArena(scene) {
   setTheme('synthwave');
   layoutEq();
 
-  // ---------------------------------------------------------- Update
+  // Update
   function update(t, pulse = 0.4, dt = 0.016, beatPhase = 0, spectrum = null) {
     floorMat.uniforms.uTime.value = t;
     floorMat.uniforms.uPulse.value = pulse;

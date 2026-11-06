@@ -1,5 +1,4 @@
-// Offline support: caches the whole app on first load.
-// Bump VERSION whenever you publish an update so players get the new files.
+// Offline cache. Bump VERSION on each release.
 const VERSION = 'punchpulse-v1.4.0';
 const FILES = [
   './',
@@ -39,8 +38,7 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Network first (so every update shows up on the very next launch), falling back to the
-// offline copy when there is no internet or the network is too slow (3 s).
+// network first (3 s timeout), cache as fallback
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
   e.respondWith((async () => {
